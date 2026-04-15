@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel BI</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#07152f; --sidebar:#031129; --panel:#1c3165; --panel2:#223b73; --text:#eef4ff;
+    --muted:#adc0e4; --line:rgba(255,255,255,.08); --cyan:#35b9ff; --pink:#ff5f96;
+    --orange:#ffb23e; --green:#1fc16b; --red:#ef4d61; --yellow:#f2c14f;
+  }
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  .sidebar{background:var(--sidebar);padding:18px 14px;border-right:1px solid var(--line)}
+  .brand{padding:8px 10px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .brand h1{margin:0 0 6px;font-size:16px}
+  .brand p{margin:0;font-size:12px;color:var(--muted);line-height:1.35}
+  .navbtn{width:100%;border:none;border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;color:var(--text);background:rgba(255,255,255,.04);font-size:15px;font-weight:800;text-align:left}
+  .navbtn.active,.navbtn:hover{background:#0c3452}
+  .content{padding:16px}
+  .page{display:none}.page.active{display:block}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 10px 24px rgba(0,0,0,.15)}
+  .hero{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+  .sub{color:var(--muted);font-size:12px;margin:2px 0 10px}
+  h2,h3{margin:0}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .mini-card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:88px}
+  .label{font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.2}
+  .value{font-size:18px;font-weight:800;line-height:1.02;letter-spacing:-.02em;word-break:break-word}
+  .value.sm{font-size:16px}.value.good{color:var(--green)}.value.bad{color:var(--red)}.value.warn{color:var(--yellow)}
+  .help{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.2}
+  .metrics-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+  .pill{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}
+  .pill.good{background:rgba(31,193,107,.16);color:#ffe08a}.pill.bad{background:rgba(239,77,97,.16);color:#ffe08a}
+  .fit{height:calc(100vh - 190px);overflow:auto;border-radius:14px}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  thead th{background:#02102a;color:#fff;font-size:14px;padding:10px 8px}
+  tbody td{padding:8px 8px;font-size:13px;text-align:center;border-bottom:1px solid rgba(255,255,255,.03)}
+  .charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+  .mini-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .annual-two{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .chart-card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:20px;padding:12px 12px 6px}
+  .chart-title{font-size:16px;font-weight:800;margin:4px 4px 10px}
+  canvas{width:100%!important;height:250px!important}.small-canvas{height:220px!important}
+  .config-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+  label{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+  input,button,select,textarea{width:100%;background:#0b1f44;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font:inherit;font-size:12px}
+  button{cursor:pointer;font-weight:800}
+  .meta-card{padding:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px}
+  .meta-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+  .meta-pill{padding:8px 10px;border-radius:14px;background:#0b1f44;border:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px}
+  .hint{font-size:12px;color:var(--muted)} .top-actions{display:flex;gap:10px;flex-wrap:wrap} .top-actions>*{width:auto}
+  #dashboard h2{font-size:22px;margin-bottom:2px} #dashboard select{padding:8px 10px;font-size:13px} #config h2{font-size:20px}
+  .badge{display:inline-block;padding:4px 8px;border-radius:10px;background:rgba(53,185,255,.15);color:#cfefff;font-size:11px;font-weight:700}
+  @media (max-width:1200px){
+    .app{grid-template-columns:1fr}.sidebar{display:flex;gap:8px;overflow:auto}.brand{display:none}.navbtn{min-width:150px}
+    .hero,.charts-grid,.config-grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.mini-charts,.annual-two{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>📊 Painel BI</h1><p>Faturamento bruto, líquido, nacional, internacional e refaturado.</p></div>
+    <button class="navbtn active" data-page="dashboard">📈 Dashboard</button>
+    <button class="navbtn" data-page="diario">🗓️ Diário</button>
+    <button class="navbtn" data-page="graficos">📉 Gráficos</button>
+    <button class="navbtn" data-page="anual">📆 Gráfico anual</button>
+    <button class="navbtn" data-page="config">⚙️ Config</button>
+  </aside>
+
+  <main class="content">
+    <section id="dashboard" class="page active">
+      <div class="hero">
+        <div class="panel">
+          <div class="toolbar">
+            <div><h2>Visão Geral</h2><div id="dashSubtitle" class="sub">Sem dados carregados.</div></div>
+            <select id="dashboardMonth"></select>
+          </div>
+          <div class="cards">
+            <div class="mini-card"><div class="label">Faturamento bruto</div><div id="cardBruto" class="value">0,00</div><div class="help">Soma do bruto do mês</div></div>
+            <div class="mini-card"><div class="label">Refaturado</div><div id="cardRef" class="value sm">0,00</div><div class="help">Lido da Supabase B</div></div>
+            <div class="mini-card"><div class="label">Faturamento líquido</div><div id="cardLiquido" class="value">0,00</div><div class="help">Bruto - refaturado</div></div>
+            <div class="mini-card"><div class="label">Meta do mês</div><div id="cardMeta" class="value warn">0,00</div><div class="help">Configuração mensal</div></div>
+            <div class="mini-card"><div class="label">Falta / sobra</div><div id="cardFalta" class="value">0,00</div><div class="help">Vermelho = faltando</div></div>
+            <div class="mini-card"><div class="label">% atingido</div><div id="cardAtingido" class="value warn">0,0%</div><div class="help">Líquido ÷ meta</div></div>
+            <div class="mini-card"><div class="label">Internacional</div><div id="cardInter" class="value sm">0,00</div><div id="cardInterPct" class="help">0,0% da receita</div></div>
+            <div class="mini-card"><div class="label">Nacional</div><div id="cardNac" class="value sm">0,00</div><div id="cardNacPct" class="help">0,0% da receita</div></div>
+          </div>
+          <div class="metrics-row">
+            <div class="mini-card"><div class="label">Média líquida por dia</div><div id="cardMediaDia" class="value sm">0,00</div><div class="help">Líquido ÷ dias do mês</div></div>
+            <div class="mini-card"><div class="label">Precisa por dia</div><div id="cardPrecisaDia" class="value good">0,00</div><div class="help">Para bater a meta</div></div>
+            <div class="mini-card"><div class="label">Status do mês</div><div style="margin-top:10px"><span id="cardStatus" class="pill bad">Meta não definida</span></div><div class="help">Considera o mês filtrado</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Resumo Executivo</h2><div class="sub">Leitura do mês filtrado</div>
+          <div class="cards" style="grid-template-columns:1fr 1fr">
+            <div class="mini-card"><div class="label">Melhor dia</div><div id="cardBestDay" class="value sm">-</div><div id="cardBestVal" class="help">0,00</div></div>
+            <div class="mini-card"><div class="label">Pior dia</div><div id="cardWorstDay" class="value sm">-</div><div id="cardWorstVal" class="help">0,00</div></div>
+            <div class="mini-card"><div class="label">Meta por dia</div><div id="cardMetaDia" class="value sm">0,00</div><div id="cardDaysInMonth" class="help">0 dias no mês</div></div>
+            <div class="mini-card"><div class="label">% refaturado</div><div id="cardRefPct" class="value warn">0,0%</div><div class="help">Refaturado ÷ bruto</div></div>
+          </div>
+          <div style="margin-top:16px" class="cards">
+            <div class="mini-card"><div class="label">Participação internacional</div><div id="cardPartInter" class="value sm">0,0%</div></div>
+            <div class="mini-card"><div class="label">Participação nacional</div><div id="cardPartNac" class="value sm">0,0%</div></div>
+            <div class="mini-card"><div class="label">Mês consultado</div><div id="cardMes" class="value sm">-</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="diario" class="page">
+      <div class="panel">
+        <div class="toolbar"><div><h2>Faturamento diário</h2><div class="sub">Meta dia = meta do mês ÷ total de dias do mês selecionado</div></div><select id="diarioMonth"></select></div>
+        <div class="fit"><table><thead><tr><th style="width:12%">Dia</th><th style="width:18%">Bruto</th><th style="width:16%">Refaturado</th><th style="width:18%">Líquido</th><th style="width:16%">Meta dia</th><th style="width:20%">Diferença</th></tr></thead><tbody id="diarioBody"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="graficos" class="page">
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title">Comparativo diário</div><canvas id="comparativoChart"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Participação do mês</div><canvas id="pizzaChart" class="small-canvas"></canvas></div>
+      </div>
+      <div class="mini-charts">
+        <div class="chart-card"><div class="chart-title">Total líquido</div><canvas id="totalChart" class="small-canvas"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Internacional</div><canvas id="interChart" class="small-canvas"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Nacional</div><canvas id="nacChart" class="small-canvas"></canvas></div>
+      </div>
+    </section>
+
+    <section id="anual" class="page">
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="toolbar">
+          <div><div class="chart-title">Anual - bruto x líquido</div><div class="sub">Linhas mensais do ano selecionado</div></div>
+          <select id="annualYear" style="max-width:90px;padding:8px 10px;font-size:13px;border-radius:10px"></select>
+        </div>
+        <canvas id="annualMainChart" style="height:340px!important"></canvas>
+      </div>
+      <div class="annual-two">
+        <div class="chart-card"><div class="chart-title">Internacional x Nacional</div><canvas id="annualInterNacChart" class="small-canvas"></canvas></div>
+        <div class="chart-card"><div class="chart-title">% refaturado por mês</div><canvas id="annualPctChart" class="small-canvas"></canvas></div>
+      </div>
+      <div class="annual-two" style="margin-top:14px">
+        <div class="chart-card"><div class="chart-title">Bruto mensal</div><canvas id="annualBrutoChart" class="small-canvas"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Líquido mensal</div><canvas id="annualLiquidoChart" class="small-canvas"></canvas></div>
+      </div>
+    </section>
+
+    <section id="config" class="page">
+      <div class="config-grid">
+        <div class="panel">
+          <h2>Importação e sincronização</h2>
+          <div class="sub">Importe o Excel do relatório. Ao clicar em Salvar, o bruto será enviado para a Supabase A com atualização por data. O refaturado será lido da Supabase B.</div>
+          <label>Importar Excel do relatório</label>
+          <input type="file" id="excelInput" accept=".xls,.xlsx,.csv">
+          <div class="top-actions" style="margin-top:12px">
+            <button id="importToSupabaseBtn">Salvar</button>
+            <button id="refreshBtn">Sincronizar</button>
+            <button id="loadExampleBtn">Carregar exemplo</button>
+            <button id="clearImportedBtn">Limpar base local</button>
+          </div>
+          <div style="margin-top:12px" class="hint">A importação usa upsert por data. Se você reimportar qualquer mês, as datas iguais são atualizadas e os demais meses permanecem.</div>
+
+          <div style="margin-top:18px" class="meta-card">
+            <div class="toolbar" style="margin-bottom:8px"><div><h3>Meta mensal</h3><div class="hint">Cadastre, consulte e altere por mês.</div></div><span class="badge">Supabase A</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div><label>Mês</label><input type="month" id="metaMonthInput"></div>
+              <div><label>Valor da meta</label><input type="text" id="metaValueInput" placeholder="75000000"></div>
+            </div>
+            <div class="top-actions" style="margin-top:12px">
+              <button id="saveMetaBtn">Salvar meta</button>
+              <button id="deleteMetaBtn">Excluir meta do mês</button>
+              <button id="refreshMetasBtn">Atualizar metas</button>
+            </div>
+            <div id="metaList" class="meta-list"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Configuração interna</h2>
+          <div class="sub">As credenciais da Supabase não aparecem na tela. Edite apenas no início do script do HTML.</div>
+          <div class="meta-card"><div class="label">Meta consultada</div><div id="configMetaPreview" class="value sm">0,00</div><div class="help">Ao trocar o mês, tudo recalcula junto.</div></div>
+          <div class="meta-card" style="margin-top:12px"><div class="label">Fonte do bruto</div><div class="value sm">Relatório → Supabase A</div><div class="help">O painel passa a ler a base sincronizada.</div></div>
+          <div class="meta-card" style="margin-top:12px"><div class="label">Fonte do refaturado</div><div class="value sm">Supabase B</div><div class="help">Leitura direta via REST.</div></div>
+          <div class="meta-card" style="margin-top:12px"><div class="label">Tabelas esperadas</div><div class="help">A: faturamento_bruto / metas_faturamento<br>B: refaturado</div></div>
+          <div class="meta-card" style="margin-top:12px"><div class="label">Campos obrigatórios</div><div class="help">A: data, total_bruto, internacional, nacional<br>A metas: mes, valor_meta<br>B: data, valor_refaturado<br><br>Leitura do relatório: total/inter/nac = coluna à direita de "Complemento", que é o Valor Realizado da seção</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+/* =========================
+   CONFIG OCULTA NO HTML
+   EDITE AQUI
+   ========================= */
+const SUPABASE_A = {
+  url: 'https://rhjtyyrlctwetjhnaidu.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoanR5eXJsY3R3ZXRqaG5haWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzE2NzMsImV4cCI6MjA5MTgwNzY3M30.79U7lcPIG511u2_3ExG32VowakoWyWTfTniW9hHrhRE',
+  brutoTable: 'faturamento_bruto',
+  brutoDateCol: 'data',
+  brutoCol: 'total_bruto',
+  interCol: 'internacional',
+  nacCol: 'nacional',
+  metasTable: 'metas_faturamento',
+  metasMonthCol: 'mes',
+  metasValueCol: 'valor_meta'
+};
+
+const SUPABASE_B = {
+  url: 'https://bcchonskglushqbnwcni.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjY2hvbnNrZ2x1c2hxYm53Y25pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDkxNDUsImV4cCI6MjA5MTMyNTE0NX0.M-yWHlHMFHLE9T5DlJ6nDzutYjRjavHEGvZCH9o2AXg',
+  table: 'refaturado',
+  dateCol: 'data',
+  refCol: 'valor_refaturado'
+};
+
+const state = { brutoRows: [], refRows: [], metas: {}, charts: {} };
+
+function parseBR(v){ if(v==null||v==='') return 0; if(typeof v==='number') return v; let s=String(v).trim().replace(/\s/g,''); if(s.includes('.')&&s.includes(',')) s=s.replace(/\./g,'').replace(',','.'); else if(s.includes(',')&&!s.includes('.')) s=s.replace(',','.'); return Number(s)||0; }
+function fmtMoney(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtPct(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; }
+function shortNumber(v){ const n=Number(v||0); if(Math.abs(n)>=1_000_000) return (n/1_000_000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mi'; if(Math.abs(n)>=1_000) return (n/1_000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mil'; return n.toLocaleString('pt-BR',{maximumFractionDigits:0}); }
+function normalizeDate(raw){ if(!raw&&raw!==0) return null; if(raw instanceof Date && !isNaN(raw)) return raw.toISOString().slice(0,10); if(typeof raw==='number'){ const d=new Date(Math.round((raw-25569)*86400*1000)); if(!isNaN(d)) return d.toISOString().slice(0,10);} const s=String(raw).trim(); let m=s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/); if(m) return `${m[3]}-${m[2]}-${m[1]}`; m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m) return s; const d=new Date(s); if(!isNaN(d)) return d.toISOString().slice(0,10); return null; }
+function normalizeMonthDate(raw){ const s = normalizeDate(raw); return s ? s.slice(0,7) + '-01' : null; }
+function monthKeyFromDate(dateStr){ return dateStr?.slice(0,7); }
+function daysInMonth(monthKey){ const [y,m]=monthKey.split('-').map(Number); return new Date(y,m,0).getDate(); }
+const monthNames=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function prettyMonth(monthKey){ if(!monthKey) return '-'; const [y,m]=monthKey.split('-').map(Number); return `${monthNames[m-1]} de ${y}`; }
+function allMonthKeys(){ const set=new Set(); state.brutoRows.forEach(r=>set.add(monthKeyFromDate(r.date))); state.refRows.forEach(r=>set.add(monthKeyFromDate(r.date))); Object.keys(state.metas).forEach(k=>set.add(k)); return Array.from(set).filter(Boolean).sort(); }
+function allYears(){ return Array.from(new Set(allMonthKeys().map(k=>k.slice(0,4)))).sort(); }
+function setSelectOptions(select, values, formatter){ const current=select.value; select.innerHTML=''; values.forEach(v=>{ const opt=document.createElement('option'); opt.value=v; opt.textContent=formatter?formatter(v):v; select.appendChild(opt); }); if(values.includes(current)) select.value=current; else if(values.length) select.value=values[values.length-1]; }
+function getMonthDataset(monthKey){ const dim=daysInMonth(monthKey); const map=new Map(); for(let d=1; d<=dim; d++){ const date=`${monthKey}-${String(d).padStart(2,'0')}`; map.set(date,{date,bruto:0,inter:0,nac:0,ref:0,liquido:0}); } state.brutoRows.filter(r=>monthKeyFromDate(r.date)===monthKey).forEach(r=>{ const row=map.get(r.date); row.bruto+=Number(r.bruto||0); row.inter+=Number(r.inter||0); row.nac+=Number(r.nac||0); }); state.refRows.filter(r=>monthKeyFromDate(r.date)===monthKey).forEach(r=>{ const row=map.get(r.date); if(row) row.ref+=Number(r.ref||0); }); return Array.from(map.values()).map(r=>({...r, liquido:r.bruto-r.ref})); }
+function aggregateYear(year){ const months=Array.from({length:12},(_,i)=>`${year}-${String(i+1).padStart(2,'0')}`); return months.map(monthKey=>{ const rows=getMonthDataset(monthKey); const bruto=rows.reduce((s,r)=>s+r.bruto,0); const ref=rows.reduce((s,r)=>s+r.ref,0); const liquido=bruto-ref; const inter=rows.reduce((s,r)=>s+r.inter,0); const nac=rows.reduce((s,r)=>s+r.nac,0); return {monthKey, bruto, ref, liquido, inter, nac, refPct: bruto ? (ref/bruto)*100 : 0}; }); }
+function intensityColor(diff, metaDia){ if(!metaDia) return 'rgba(255,255,255,.03)'; const ratio=Math.min(Math.abs(diff)/metaDia,1); return diff>=0 ? `rgba(31,193,107,${0.14+ratio*0.42})` : `rgba(239,77,97,${0.14+ratio*0.42})`; }
+
+function saveLocalMetas(){ localStorage.setItem('painel_bi_metas', JSON.stringify(state.metas)); }
+function loadLocal(){ try{ state.metas = JSON.parse(localStorage.getItem('painel_bi_metas') || '{}'); }catch{ state.metas = {}; } }
+
+function renderMetaList(){
+  const keys = Object.keys(state.metas).sort();
+  metaList.innerHTML = keys.length ? keys.map(k=>`<div class="meta-pill"><span>${prettyMonth(k)}</span><span>${fmtMoney(state.metas[k])}</span></div>`).join('') : '<div class="hint">Nenhuma meta cadastrada.</div>';
+}
+function updateMetaPreview(){
+  const monthKey = dashboardMonth.value || allMonthKeys().slice(-1)[0] || metaMonthInput.value;
+  configMetaPreview.textContent = fmtMoney(state.metas[monthKey] || 0);
+}
+function renderEmpty(){
+  dashSubtitle.textContent='Sem dados carregados.';
+  ['cardBruto','cardRef','cardLiquido','cardMeta','cardFalta','cardAtingido','cardInter','cardNac','cardMediaDia','cardPrecisaDia','cardMetaDia','cardRefPct','cardPartInter','cardPartNac'].forEach(id=>document.getElementById(id).textContent=id.toLowerCase().includes('pct')||id==='cardAtingido'?'0,0%':'0,00');
+  cardInterPct.textContent='0,0% da receita'; cardNacPct.textContent='0,0% da receita'; cardBestDay.textContent=cardWorstDay.textContent='-'; cardBestVal.textContent=cardWorstVal.textContent='0,00'; cardStatus.textContent='Sem dados'; cardStatus.className='pill bad'; cardMes.textContent='-'; diarioBody.innerHTML=''; Object.values(state.charts).forEach(ch=>ch.destroy()); state.charts={};
+}
+function renderAll(){
+  const months=allMonthKeys(); renderMetaList();
+  if(!months.length){ dashboardMonth.innerHTML=diarioMonth.innerHTML=annualYear.innerHTML=''; renderEmpty(); updateMetaPreview(); return; }
+  setSelectOptions(dashboardMonth, months, prettyMonth); setSelectOptions(diarioMonth, months, prettyMonth); setSelectOptions(annualYear, allYears());
+  renderDashboard(); renderDiario(); renderGraficos(); renderAnual(); updateMetaPreview();
+}
+function renderDashboard(){
+  const monthKey=dashboardMonth.value || allMonthKeys().slice(-1)[0];
+  const rows=getMonthDataset(monthKey);
+  const bruto=rows.reduce((s,r)=>s+r.bruto,0), ref=rows.reduce((s,r)=>s+r.ref,0), liquido=bruto-ref, inter=rows.reduce((s,r)=>s+r.inter,0), nac=rows.reduce((s,r)=>s+r.nac,0);
+  const meta=state.metas[monthKey]||0, dim=daysInMonth(monthKey), metaDia=meta/dim, falta=meta-liquido, atingido=meta?(liquido/meta)*100:0, refPct=bruto?(ref/bruto)*100:0, interPct=bruto?(inter/bruto)*100:0, nacPct=bruto?(nac/bruto)*100:0, mediaDia=liquido/dim, precisaDia=meta?Math.max(0,falta/dim):0;
+  const populated=rows.filter(r=>r.bruto||r.ref);
+  cardBruto.textContent=fmtMoney(bruto); cardRef.textContent=fmtMoney(ref); cardLiquido.textContent=fmtMoney(liquido); cardMeta.textContent=fmtMoney(meta);
+  cardFalta.textContent=fmtMoney(falta); cardFalta.className=`value ${falta>0?'bad':'good'} sm`; cardAtingido.textContent=fmtPct(atingido); cardInter.textContent=fmtMoney(inter); cardNac.textContent=fmtMoney(nac); cardInterPct.textContent=`${fmtPct(interPct)} da receita`; cardNacPct.textContent=`${fmtPct(nacPct)} da receita`; cardMediaDia.textContent=fmtMoney(mediaDia); cardPrecisaDia.textContent=fmtMoney(precisaDia); cardMetaDia.textContent=fmtMoney(metaDia); cardDaysInMonth.textContent=`${dim} dias no mês`; cardRefPct.textContent=fmtPct(refPct); cardPartInter.textContent=fmtPct(interPct); cardPartNac.textContent=fmtPct(nacPct); cardMes.textContent=prettyMonth(monthKey);
+  let best=rows[0], worst=rows[0]; rows.forEach(r=>{ if(r.liquido>best.liquido) best=r; if(r.liquido<worst.liquido) worst=r; });
+  cardBestDay.textContent=best?best.date.split('-').reverse().join('/'): '-'; cardBestVal.textContent=best?fmtMoney(best.liquido):'0,00'; cardWorstDay.textContent=worst?worst.date.split('-').reverse().join('/'): '-'; cardWorstVal.textContent=worst?fmtMoney(worst.liquido):'0,00';
+  dashSubtitle.textContent=`Período com ${populated.length} dia(s) carregado(s). Último lançamento: ${populated.length ? populated[populated.length-1].date.split('-').reverse().join('/') : '-'}.`;
+  if(!meta){ cardStatus.textContent='Meta não definida'; cardStatus.className='pill bad'; } else if(liquido>=meta){ cardStatus.textContent='Meta batida'; cardStatus.className='pill good'; } else { cardStatus.textContent='Abaixo da meta'; cardStatus.className='pill bad'; }
+  if(diarioMonth.value!==monthKey) diarioMonth.value=monthKey;
+}
+function renderDiario(){
+  const monthKey=diarioMonth.value || allMonthKeys().slice(-1)[0];
+  const rows=getMonthDataset(monthKey); const meta=state.metas[monthKey]||0; const metaDia=meta/daysInMonth(monthKey);
+  diarioBody.innerHTML = rows.map((r,i)=>{ const diff=r.liquido-metaDia; return `<tr style="background:${intensityColor(diff, metaDia)}"><td>${String(i+1).padStart(2,'0')}/${monthKey.slice(5,7)}/${monthKey.slice(0,4)}</td><td>${fmtMoney(r.bruto)}</td><td>${fmtMoney(r.ref)}</td><td>${fmtMoney(r.liquido)}</td><td>${fmtMoney(metaDia)}</td><td>${fmtMoney(diff)}</td></tr>`; }).join('');
+  if(dashboardMonth.value!==monthKey){ dashboardMonth.value=monthKey; renderDashboard(); renderGraficos(); updateMetaPreview(); }
+}
+function destroyChart(key){ if(state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; } }
+function chartOpts(currency=false, datalabels=false, percentAxis=false){
+  return { responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{ legend:{labels:{color:'#eef4ff'}}, datalabels:datalabels ? { color:'#fff', formatter:(v)=> currency ? shortNumber(v) : `${Number(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%`, anchor:'end', align:'top', offset:2, clamp:true, font:{size:10,weight:'700'} } : {display:false} }, scales:{ x:{ticks:{color:'#d9e4ff'},grid:{color:'rgba(255,255,255,.06)'}}, y:{ticks:{color:'#d9e4ff', callback:(v)=>percentAxis?`${v}%`:shortNumber(v)}, grid:{color:'rgba(255,255,255,.06)'}} } };
+}
+function renderGraficos(){
+  const monthKey=dashboardMonth.value || allMonthKeys().slice(-1)[0]; const rows=getMonthDataset(monthKey); const labels=rows.map((_,i)=>String(i+1)), total=rows.map(r=>r.liquido), inter=rows.map(r=>r.inter), nac=rows.map(r=>r.nac);
+  destroyChart('comparativo');
+  state.charts.comparativo=new Chart(comparativoChart,{ type:'line', data:{labels,datasets:[{label:'Total',data:total,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.3},{label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.3},{label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.3}]}, options:chartOpts(true,false,false) });
+  destroyChart('pizza'); const interSum=inter.reduce((s,v)=>s+v,0), nacSum=nac.reduce((s,v)=>s+v,0);
+  state.charts.pizza=new Chart(pizzaChart,{ type:'pie', data:{labels:['Internacional','Nacional'],datasets:[{data:[interSum,nacSum],backgroundColor:['#35b9ff','#ff5f96'],borderColor:'#1c3165',borderWidth:2}]}, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{labels:{color:'#eef4ff'}}, datalabels:{ color:'#fff', formatter:(v,ctx)=>{ const sum=ctx.chart.data.datasets[0].data.reduce((s,n)=>s+n,0); const pct=sum?(v/sum)*100:0; return `${fmtPct(pct)}\n${shortNumber(v)}`; }, font:{size:11,weight:'700'} }}}});
+  [['total','totalChart','Total líquido','#35b9ff',total],['inter','interChart','Internacional','#ff5f96',inter],['nac','nacChart','Nacional','#ffb23e',nac]].forEach(([key,id,label,color,data])=>{ destroyChart(key); state.charts[key]=new Chart(document.getElementById(id),{ type:'bar', data:{labels,datasets:[{label,data,backgroundColor:color}]}, options:chartOpts(true,false,false) }); });
+}
+function renderAnual(){
+  const year=annualYear.value || allYears().slice(-1)[0]; const agg=aggregateYear(year); const labels=agg.map(r=>r.monthKey.slice(5,7)), bruto=agg.map(r=>r.bruto), liquido=agg.map(r=>r.liquido), inter=agg.map(r=>r.inter), nac=agg.map(r=>r.nac), pct=agg.map(r=>r.refPct);
+  destroyChart('annualMain'); state.charts.annualMain=new Chart(annualMainChart,{ type:'line', data:{labels,datasets:[{label:'Bruto',data:bruto,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.3},{label:'Líquido',data:liquido,borderColor:'#1fc16b',backgroundColor:'transparent',borderWidth:3,tension:.3}]}, options:chartOpts(true,false,false) });
+  destroyChart('annualPct'); state.charts.annualPct=new Chart(annualPctChart,{ type:'bar', data:{labels,datasets:[{label:'% refaturado',data:pct,backgroundColor:'#f2c14f'}]}, options:chartOpts(false,true,true) });
+  destroyChart('annualInterNac'); state.charts.annualInterNac=new Chart(annualInterNacChart,{ type:'line', data:{labels,datasets:[{label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.3},{label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.3}]}, options:chartOpts(true,false,false) });
+  destroyChart('annualBruto'); state.charts.annualBruto=new Chart(annualBrutoChart,{ type:'bar', data:{labels,datasets:[{label:'Bruto',data:bruto,backgroundColor:'#35b9ff'}]}, options:chartOpts(true,false,false) });
+  destroyChart('annualLiquido'); state.charts.annualLiquido=new Chart(annualLiquidoChart,{ type:'bar', data:{labels,datasets:[{label:'Líquido',data:liquido,backgroundColor:'#1fc16b'}]}, options:chartOpts(true,false,false) });
+}
+function detectHeader(obj, candidates){ const keys=Object.keys(obj||{}); return keys.find(k=>candidates.some(c=>k.toLowerCase().includes(c))); }
+function upsertBruto(date, patch){ let row=state.brutoRows.find(r=>r.date===date); if(!row){ row={date,bruto:0,inter:0,nac:0,source:'Excel'}; state.brutoRows.push(row); } Object.assign(row, patch); }
+function parseReportLikeGrid(grid){
+  const imported = [];
+  let mode = 'main';
+
+  let headerIndex = -1;
+  let valorRealizadoIndex = -1;
+
+  // achar cabeçalho
+  for(let i = 0; i < grid.length; i++){
+    const row = grid[i].map(v => String(v).trim().toLowerCase());
+
+    if(row.includes('valor realizado')){
+      headerIndex = i;
+      valorRealizadoIndex = row.indexOf('valor realizado');
+      break;
+    }
+  }
+
+  if(headerIndex === -1 || valorRealizadoIndex === -1){
+    console.warn('Coluna referência não encontrada');
+    return imported;
+  }
+
+  // 👉 coluna correta = uma antes do "Valor Realizado"
+  const colunaCorreta = valorRealizadoIndex - 1;
+
+  // leitura das linhas
+  for(let i = headerIndex + 1; i < grid.length; i++){
+    const row = grid[i];
+
+    const joined = row.map(v=>String(v).trim()).join(' ');
+    if(/FRETE INTERNACIONAL/i.test(joined)){ mode='inter'; continue; }
+    if(/FRETE NACIONAL/i.test(joined)){ mode='nac'; continue; }
+
+    const dateCell = row.find(v =>
+      /^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(String(v).trim())
+    );
+
+    if(!dateCell) continue;
+
+    const date = normalizeDate(dateCell);
+    const valor = parseBR(row[colunaCorreta]);
+
+    let found = imported.find(r => r.date === date);
+    if(!found){
+      found = {date, bruto:0, inter:0, nac:0, source:'Excel'};
+      imported.push(found);
+    }
+
+    if(mode === 'main') found.bruto = valor;
+    else if(mode === 'inter') found.inter = valor;
+    else if(mode === 'nac') found.nac = valor;
+  }
+
+  return imported;
+}
+function parseExcelToRows(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const grid=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        let imported=parseReportLikeGrid(grid);
+
+        if(!imported.length){
+          const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+          if(rows.length){
+            const sample=rows[0];
+            const dateKey=detectHeader(sample,['data','date']);
+            const totalKey=detectHeader(sample,['valor realizado','realizado','total','bruto']);
+            const interKey=detectHeader(sample,['internacional','inter']);
+            const nacKey=detectHeader(sample,['nacional','nac']);
+            imported=rows.map(r=>{
+              const date=normalizeDate(r[dateKey]);
+              if(!date) return null;
+              return {date, bruto:parseBR(r[totalKey]), inter:parseBR(r[interKey]), nac:parseBR(r[nacKey]), source:'Excel'};
+            }).filter(Boolean);
+          }
+        }
+
+        resolve(imported.sort((a,b)=>a.date.localeCompare(b.date)));
+      }catch(err){ reject(err); }
+    };
+    reader.onerror=reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+async function fetchRows(url,key,table,cols){
+  const res=await fetch(`${url}/rest/v1/${table}?select=${encodeURIComponent(cols.join(','))}&limit=5000`,{ headers:{apikey:key, Authorization:`Bearer ${key}`}});
+  if(!res.ok) throw new Error(`Erro ${res.status} em ${table}`);
+  return await res.json();
+}
+async function loadBrutoFromSupabaseA(){
+  if(!SUPABASE_A.url || !SUPABASE_A.anonKey) throw new Error('Preencha SUPABASE_A no início do HTML.');
+  const rows=await fetchRows(SUPABASE_A.url,SUPABASE_A.anonKey,SUPABASE_A.brutoTable,[SUPABASE_A.brutoDateCol,SUPABASE_A.brutoCol,SUPABASE_A.interCol,SUPABASE_A.nacCol]);
+  state.brutoRows=rows.map(r=>({date:normalizeDate(r[SUPABASE_A.brutoDateCol]), bruto:parseBR(r[SUPABASE_A.brutoCol]), inter:parseBR(r[SUPABASE_A.interCol]), nac:parseBR(r[SUPABASE_A.nacCol]), source:'Supabase A'})).filter(r=>r.date);
+}
+async function loadRefaturadoFromSupabaseB(){
+  if(!SUPABASE_B.url || !SUPABASE_B.anonKey) throw new Error('Preencha SUPABASE_B no início do HTML.');
+  const rows=await fetchRows(SUPABASE_B.url,SUPABASE_B.anonKey,SUPABASE_B.table,[SUPABASE_B.dateCol,SUPABASE_B.refCol]);
+  state.refRows=rows.map(r=>({date:normalizeDate(r[SUPABASE_B.dateCol]), ref:parseBR(r[SUPABASE_B.refCol])})).filter(r=>r.date);
+}
+async function loadMetasFromSupabaseA(){
+  if(!SUPABASE_A.url || !SUPABASE_A.anonKey){
+    return;
+  }
+  const rows=await fetchRows(SUPABASE_A.url,SUPABASE_A.anonKey,SUPABASE_A.metasTable,[SUPABASE_A.metasMonthCol,SUPABASE_A.metasValueCol]);
+  state.metas={};
+  rows.forEach(r=>{
+    const d = normalizeMonthDate(r[SUPABASE_A.metasMonthCol]);
+    if (!d) return;
+    state.metas[d.slice(0,7)] = parseBR(r[SUPABASE_A.metasValueCol]);
+  });
+  saveLocalMetas();
+}
+async function refreshAllFromSupabases(){
+  try{
+    await Promise.all([loadBrutoFromSupabaseA(), loadRefaturadoFromSupabaseB(), loadMetasFromSupabaseA().catch(()=>{})]);
+    renderAll();
+    alert('Leitura atualizada de Supabase A + B.');
+  }catch(err){
+    alert(`Falha ao atualizar dados: ${err.message}`);
+  }
+}
+async function upsertBrutoToSupabaseA(rows){
+  if(!SUPABASE_A.url || !SUPABASE_A.anonKey) throw new Error('Preencha SUPABASE_A no início do HTML.');
+  const payload = rows.map(r=>({
+    [SUPABASE_A.brutoDateCol]: r.date,
+    [SUPABASE_A.brutoCol]: Number(r.bruto||0),
+    [SUPABASE_A.interCol]: Number(r.inter||0),
+    [SUPABASE_A.nacCol]: Number(r.nac||0),
+  }));
+  const res=await fetch(`${SUPABASE_A.url}/rest/v1/${SUPABASE_A.brutoTable}?on_conflict=${encodeURIComponent(SUPABASE_A.brutoDateCol)}`,{
+    method:'POST',
+    headers:{
+      apikey:SUPABASE_A.anonKey,
+      Authorization:`Bearer ${SUPABASE_A.anonKey}`,
+      'Content-Type':'application/json',
+      Prefer:'resolution=merge-duplicates,return=representation'
+    },
+    body:JSON.stringify(payload)
+  });
+  if(!res.ok) throw new Error(`Falha ao importar bruto: ${res.status} ${await res.text()}`);
+}
+async function saveMetaToSupabase(monthKey, value){
+  if(!SUPABASE_A.url || !SUPABASE_A.anonKey){
+    state.metas[monthKey] = Number(value||0);
+    saveLocalMetas();
+    return;
+  }
+  const payload=[{
+    [SUPABASE_A.metasMonthCol]: `${monthKey}-01`,
+    [SUPABASE_A.metasValueCol]: Number(value||0)
+  }];
+  const res=await fetch(`${SUPABASE_A.url}/rest/v1/${SUPABASE_A.metasTable}?on_conflict=${encodeURIComponent(SUPABASE_A.metasMonthCol)}`,{
+    method:'POST',
+    headers:{
+      apikey:SUPABASE_A.anonKey,
+      Authorization:`Bearer ${SUPABASE_A.anonKey}`,
+      'Content-Type':'application/json',
+      Prefer:'resolution=merge-duplicates,return=representation'
+    },
+    body:JSON.stringify(payload)
+  });
+  if(!res.ok) throw new Error(`Falha ao salvar meta: ${res.status} ${await res.text()}`);
+}
+async function deleteMetaFromSupabase(monthKey){
+  if(!SUPABASE_A.url || !SUPABASE_A.anonKey){
+    delete state.metas[monthKey];
+    saveLocalMetas();
+    return;
+  }
+  const date=`${monthKey}-01`;
+  const res=await fetch(`${SUPABASE_A.url}/rest/v1/${SUPABASE_A.metasTable}?${encodeURIComponent(SUPABASE_A.metasMonthCol)}=eq.${encodeURIComponent(date)}`,{
+    method:'DELETE',
+    headers:{apikey:SUPABASE_A.anonKey, Authorization:`Bearer ${SUPABASE_A.anonKey}`}
+  });
+  if(!res.ok) throw new Error(`Falha ao excluir meta: ${res.status} ${await res.text()}`);
+}
+function loadExample(){
+  state.brutoRows=[
+    {date:'2026-03-25', bruto:2927677.63, inter:1718780.38, nac:1037769.47, source:'Exemplo'},
+    {date:'2026-03-26', bruto:3138487.91, inter:1497027.47, nac:1193741.67, source:'Exemplo'},
+    {date:'2026-03-27', bruto:3904473.61, inter:2646197.81, nac:1107602.23, source:'Exemplo'},
+    {date:'2026-03-28', bruto:1782582.11, inter:998743.50, nac:744351.26, source:'Exemplo'},
+    {date:'2026-03-29', bruto:550552.79, inter:82093.03, nac:281462.83, source:'Exemplo'},
+    {date:'2026-03-30', bruto:2357596.88, inter:1260349.24, nac:956220.34, source:'Exemplo'},
+    {date:'2026-03-31', bruto:4462153.46, inter:2165232.82, nac:1167474.23, source:'Exemplo'},
+    {date:'2026-04-01', bruto:1304847.32, inter:531379.20, nac:346569.05, source:'Exemplo'}
+  ];
+  state.refRows=[
+    {date:'2026-03-25', ref:80000},{date:'2026-03-26', ref:120000},{date:'2026-03-27', ref:150000},{date:'2026-03-28', ref:50000},
+    {date:'2026-03-29', ref:25000},{date:'2026-03-30', ref:90000},{date:'2026-03-31', ref:110000},{date:'2026-04-01', ref:45000}
+  ];
+  renderAll();
+}
+
+document.querySelectorAll('.navbtn').forEach(btn=>btn.addEventListener('click',()=>{ document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(btn.dataset.page).classList.add('active'); }));
+dashboardMonth.addEventListener('change',()=>{ renderDashboard(); renderDiario(); renderGraficos(); updateMetaPreview(); });
+diarioMonth.addEventListener('change',()=>{ renderDiario(); dashboardMonth.value=diarioMonth.value; renderDashboard(); renderGraficos(); updateMetaPreview(); });
+annualYear.addEventListener('change',renderAnual);
+excelInput.addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if (!file) return;
+  try{
+    const rows = await parseExcelToRows(file);
+    state.brutoRows = rows;
+    renderAll();
+    alert(`Excel lido com sucesso: ${rows.length} linha(s). Clique em "Salvar" para gravar na base.`);
+  }catch(err){
+    alert(`Falha ao ler Excel: ${err.message}`);
+  }
+});
+importToSupabaseBtn.addEventListener('click', async ()=>{
+  const file = excelInput.files[0];
+  if (!file){ alert('Selecione o Excel primeiro.'); return; }
+  try{
+    const rows = await parseExcelToRows(file);
+    await upsertBrutoToSupabaseA(rows);
+    await loadBrutoFromSupabaseA();
+    await loadRefaturadoFromSupabaseB().catch(()=>{});
+    await loadMetasFromSupabaseA().catch(()=>{});
+    renderAll();
+    alert(`Importação concluída. ${rows.length} linha(s) enviadas para a Supabase A com atualização por data.`);
+  }catch(err){
+    alert(err.message);
+  }
+});
+refreshBtn.addEventListener('click', refreshAllFromSupabases);
+refreshMetasBtn.addEventListener('click', async ()=>{ try{ await loadMetasFromSupabaseA(); renderAll(); alert('Metas atualizadas.'); }catch(err){ alert(err.message); } });
+saveMetaBtn.addEventListener('click', async ()=>{
+  if(!metaMonthInput.value) return alert('Selecione um mês.');
+  const value = parseBR(metaValueInput.value);
+  try{
+    await saveMetaToSupabase(metaMonthInput.value, value);
+    state.metas[metaMonthInput.value] = value;
+    saveLocalMetas();
+    renderAll();
+    alert('Meta salva.');
+  }catch(err){
+    alert(err.message);
+  }
+});
+deleteMetaBtn.addEventListener('click', async ()=>{
+  if(!metaMonthInput.value) return alert('Selecione um mês.');
+  try{
+    await deleteMetaFromSupabase(metaMonthInput.value);
+    delete state.metas[metaMonthInput.value];
+    saveLocalMetas();
+    renderAll();
+    alert('Meta excluída.');
+  }catch(err){
+    alert(err.message);
+  }
+});
+loadExampleBtn.addEventListener('click', loadExample);
+clearImportedBtn.addEventListener('click', ()=>{ if(!confirm('Limpar dados carregados da tela?')) return; state.brutoRows=[]; state.refRows=[]; renderAll(); });
+metaMonthInput.addEventListener('change', ()=>{ metaValueInput.value = state.metas[metaMonthInput.value] || ''; updateMetaPreview(); });
+
+loadLocal();
+metaMonthInput.value = new Date().toISOString().slice(0,7);
+metaValueInput.value = state.metas[metaMonthInput.value] || '';
+renderAll();
+</script>
+</body>
+</html>
