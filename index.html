@@ -214,6 +214,12 @@
 </div>
 
 <script>
+  const perfil = localStorage.getItem("perfil_menu");
+
+if (!perfil) {
+  alert("Acesso não autorizado. Entre pelo menu principal.");
+  window.location.href = "https://SEU-MENU-PAI.vercel.app";
+}
 Chart.register(ChartDataLabels);
 
 function setText(id, value){
@@ -992,15 +998,37 @@ metaValueInput.value = state.metas[metaMonthInput.value] || '';
 renderAll();
 
 window.addEventListener('load', async () => {
+
+  // 🔐 CONTROLE DE PERMISSÕES FATURAMENTO
+  const permissoesFaturamento = {
+    admin: ["dashboard", "diario", "graficos", "anual", "config"],
+    operacional: ["dashboard", "diario", "graficos", "anual"],
+    consulta: ["dashboard", "diario", "graficos", "anual"]
+  };
+
+  const perfil = localStorage.getItem("perfil_menu") || "consulta";
+  const liberadas = permissoesFaturamento[perfil] || [];
+
+  document.querySelectorAll("[data-page]").forEach(btn => {
+    const page = btn.getAttribute("data-page");
+
+    if (!liberadas.includes(page)) {
+      btn.style.display = "none";
+    }
+  });
+
+  // 🔽 seu código original continua aqui
   if(!hasSupabaseConfig()){
     console.warn('Preencha SUPABASE_A e SUPABASE_B no início do HTML antes de sincronizar.');
     return;
   }
+
   try{
     await refreshAllFromSupabases(false);
   }catch(err){
     console.error(err);
   }
+
 });
 </script>
 </body>
