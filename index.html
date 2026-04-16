@@ -214,13 +214,15 @@
 </div>
 
 <script>
-  const perfil = localStorage.getItem("perfil_menu");
+ const params = new URLSearchParams(window.location.search);
+const perfil = params.get("perfil");
+const usuario = params.get("usuario") || "";
 
 if (!perfil) {
   alert("Acesso não autorizado. Entre pelo menu principal.");
-  window.location.href = "https://SEU-MENU-PAI.vercel.app";
+  window.location.href = "https://menu-rho-olive.vercel.app/";
+  throw new Error("Acesso bloqueado");
 }
-Chart.register(ChartDataLabels);
 
 function setText(id, value){
   const el = document.getElementById(id);
@@ -999,23 +1001,20 @@ renderAll();
 
 window.addEventListener('load', async () => {
 
-  // 🔐 CONTROLE DE PERMISSÕES FATURAMENTO
-  const permissoesFaturamento = {
-    admin: ["dashboard", "diario", "graficos", "anual", "config"],
-    operacional: ["dashboard", "diario", "graficos", "anual"],
-    consulta: ["dashboard", "diario", "graficos", "anual"]
-  };
+ const permissoesFaturamento = {
+  admin: ["dashboard", "diario", "graficos", "anual", "config"],
+  operacional: ["dashboard", "diario", "graficos", "anual"],
+  consulta: ["dashboard", "diario", "graficos", "anual"]
+};
 
-  const perfil = localStorage.getItem("perfil_menu") || "consulta";
-  const liberadas = permissoesFaturamento[perfil] || [];
+const liberadas = permissoesFaturamento[perfil] || [];
 
-  document.querySelectorAll("[data-page]").forEach(btn => {
-    const page = btn.getAttribute("data-page");
-
-    if (!liberadas.includes(page)) {
-      btn.style.display = "none";
-    }
-  });
+document.querySelectorAll("[data-page]").forEach(btn => {
+  const page = btn.getAttribute("data-page");
+  if (!liberadas.includes(page)) {
+    btn.style.display = "none";
+  }
+});
 
   // 🔽 seu código original continua aqui
   if(!hasSupabaseConfig()){
