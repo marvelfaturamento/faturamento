@@ -355,8 +355,8 @@ function parseReportLikeGrid(grid){
     if(/FRETE NACIONAL/i.test(joined)){ mode='nac'; continue; }
 
     const vrIdx = normalized.findIndex(v => /valor realizado/i.test(v));
-    if(vrIdx > 0 && normalized.some(v => /^data$/i.test(v))){
-      valorCol = vrIdx - 1;
+    if(vrIdx >= 0 && normalized.some(v => /^data$/i.test(v))){
+      valorCol = vrIdx;
       continue;
     }
 
@@ -378,14 +378,12 @@ function parseReportLikeGrid(grid){
       valor = parseBR(row[valorCol]);
     }
 
-    if(!valor){
-      const nums = row
-        .slice(dateIdx + 1)
-        .map(v => parseBR(v))
-        .filter(v => Number.isFinite(v) && v > 0);
-      if(nums.length){
-        valor = Math.max(...nums.slice(0, 6));
-      }
+    if (!valor && valorCol >= 0 && valorCol < row.length) {
+      valor = parseBR(row[valorCol]);
+    }
+
+    if (valor > 50000000) {
+      valor = 0;
     }
 
     if(mode === 'main') found.bruto = valor;
