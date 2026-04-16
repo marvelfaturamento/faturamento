@@ -216,9 +216,18 @@
 <script>
 Chart.register(ChartDataLabels);
 
+function setText(id, value){
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+function setClass(id, value){
+  const el = document.getElementById(id);
+  if (el) el.className = value;
+}
+
 /* COLE AS CREDENCIAIS ENTRE ASPAS SIMPLES, EM UMA LINHA SÓ */
 const SUPABASE_A = {
-  url: 'https://rhjtyyrlctwetjhnaidu.supabase.co',
+url: 'https://rhjtyyrlctwetjhnaidu.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoanR5eXJsY3R3ZXRqaG5haWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzE2NzMsImV4cCI6MjA5MTgwNzY3M30.79U7lcPIG511u2_3ExG32VowakoWyWTfTniW9hHrhRE',
   brutoTable: 'faturamento_bruto',
   brutoDateCol: 'data',
@@ -229,7 +238,6 @@ const SUPABASE_A = {
   metasMonthCol: 'mes',
   metasValueCol: 'valor_meta'
 };
-
 const SUPABASE_B = {
   url: 'https://bcchonskglushqbnwcni.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjY2hvbnNrZ2x1c2hxYm53Y25pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDkxNDUsImV4cCI6MjA5MTMyNTE0NX0.M-yWHlHMFHLE9T5DlJ6nDzutYjRjavHEGvZCH9o2AXg',
@@ -332,42 +340,62 @@ function detectHeader(obj, candidates){
   return keys.find(k=>candidates.some(c=>k.toLowerCase().includes(c)));
 }
 
+
 function parseReportLikeGrid(grid){
   const imported=[];
   let mode='main';
+  let valorCol = -1;
+
   for(const row of grid){
-    const joined=row.map(v=>String(v).trim()).join(' ').trim();
+    const normalized = row.map(v => String(v).trim());
+    const joined = normalized.join(' ').trim();
     if(!joined) continue;
+
     if(/FRETE INTERNACIONAL/i.test(joined)){ mode='inter'; continue; }
     if(/FRETE NACIONAL/i.test(joined)){ mode='nac'; continue; }
 
-    const dateIdx = row.findIndex(v=>/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(String(v).trim()));
-    if(dateIdx === -1) continue;
-    const date = normalizeDate(row[dateIdx]);
+    const vrIdx = normalized.findIndex(v => /valor realizado/i.test(v));
+    if(vrIdx > 0 && normalized.some(v => /^data$/i.test(v))){
+      valorCol = vrIdx - 1;
+      continue;
+    }
 
-    let found=imported.find(r=>r.date===date);
+    const dateIdx = normalized.findIndex(v => /^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(v));
+    if(dateIdx === -1) continue;
+
+    const date = normalizeDate(normalized[dateIdx]);
+    if(!date) continue;
+
+    let found = imported.find(r=>r.date===date);
     if(!found){
-      found={date,bruto:0,inter:0,nac:0,source:'Excel'};
+      found = {date, bruto:0, inter:0, nac:0, source:'Excel'};
       imported.push(found);
     }
 
-    const afterDate = row.slice(dateIdx + 1);
-    let valorRealizado = 0;
-    for(let i = 0; i < afterDate.length - 1; i++){
-      const atual = parseBR(afterDate[i]);
-      const proximo = parseBR(afterDate[i + 1]);
-      if(!isNaN(atual) && !isNaN(proximo)){
-        valorRealizado = Number(proximo || 0);
-        break;
+    let valor = 0;
+
+    if(valorCol >= 0 && valorCol < row.length){
+      valor = parseBR(row[valorCol]);
+    }
+
+    if(!valor){
+      const nums = row
+        .slice(dateIdx + 1)
+        .map(v => parseBR(v))
+        .filter(v => Number.isFinite(v) && v > 0);
+      if(nums.length){
+        valor = Math.max(...nums.slice(0, 6));
       }
     }
 
-    if(mode==='main') found.bruto = valorRealizado;
-    else if(mode==='inter') found.inter = valorRealizado;
-    else if(mode==='nac') found.nac = valorRealizado;
+    if(mode === 'main') found.bruto = valor;
+    else if(mode === 'inter') found.inter = valor;
+    else if(mode === 'nac') found.nac = valor;
   }
+
   return imported;
 }
+
 
 function parseExcelToRows(file){
   return new Promise((resolve,reject)=>{
@@ -599,22 +627,23 @@ function aggregateYear(year){
 }
 
 function renderEmpty(){
-  dashSubtitle.textContent='Sem dados carregados.';
-  ['cardBruto','cardRef','cardSubst','cardLiquido','cardMeta','cardFalta','cardAtingido','cardErroPct','cardInter','cardNac','cardMediaDia','cardPrecisaDia','cardMetaDia','cardPartInter','cardPartNac'].forEach(id=>{
+  const ids = ['cardBruto','cardRef','cardSubst','cardLiquido','cardMeta','cardFalta','cardAtingido','cardErroPct','cardInter','cardNac','cardMediaDia','cardPrecisaDia','cardMetaDia','cardPartInter','cardPartNac','cardMes','cardBestDay','cardBestVal','cardWorstDay','cardWorstVal'];
+  ids.forEach(id=>{
     const el=document.getElementById(id);
-    if(el) el.textContent=(id.toLowerCase().includes('pct') || id==='cardAtingido') ? '0,0%' : '0,00';
+    if(!el) return;
+    if(id.toLowerCase().includes('pct') || id==='cardAtingido') el.textContent='0,0%';
+    else if(id==='cardMes') el.textContent='-';
+    else if(id==='cardBestDay' || id==='cardWorstDay') el.textContent='-';
+    else el.textContent='0,00';
   });
-  cardInterPct.textContent='0,0% da receita';
-  cardNacPct.textContent='0,0% da receita';
-  cardBestDay.textContent='-';
-  cardWorstDay.textContent='-';
-  cardBestVal.textContent='0,00';
-  cardWorstVal.textContent='0,00';
-  cardStatus.textContent='Sem dados';
-  cardStatus.className='pill bad';
-  cardMes.textContent='-';
-  cardDiasComBruto.textContent='0';
-  diarioBody.innerHTML='';
+  setText('dashSubtitle','Sem dados carregados.');
+  setText('cardInterPct','0,0% da receita');
+  setText('cardNacPct','0,0% da receita');
+  setText('cardDaysInMonth','0 dias no mês');
+  setText('cardStatus','Sem dados');
+  setClass('cardStatus','pill bad');
+  const body=document.getElementById('diarioBody');
+  if(body) body.innerHTML='';
   Object.values(state.charts||{}).forEach(ch=>{ try{ch.destroy()}catch(e){} });
   state.charts={};
 }
@@ -640,50 +669,47 @@ function renderDashboard(){
   const precisaDia=meta ? Math.max(0,falta/dim) : 0;
   const populated=rows.filter(r=>r.bruto>0);
 
-  cardBruto.textContent=fmtMoney(bruto);
-  cardRef.textContent=fmtMoney(setor);
-  cardSubst.textContent=fmtMoney(substituicao);
-  cardLiquido.textContent=fmtMoney(valorLiquido);
-  cardMeta.textContent=fmtMoney(meta);
+  setText('cardBruto', fmtMoney(bruto));
+  setText('cardRef', fmtMoney(setor));
+  setText('cardSubst', fmtMoney(substituicao));
+  setText('cardLiquido', fmtMoney(valorLiquido));
+  setText('cardMeta', fmtMoney(meta));
 
   const faltaDisplay = falta < 0 ? Math.abs(falta) : falta;
-  cardFalta.textContent=fmtMoney(faltaDisplay);
-  cardFalta.className=`value ${falta>0?'bad':'good'} sm`;
+  setText('cardFalta', fmtMoney(faltaDisplay));
+  setClass('cardFalta', `value ${falta>0?'bad':'good'} sm`);
 
-  cardAtingido.textContent=fmtPct(atingido);
-  if(atingido < 80) cardAtingido.className='value bad';
-  else if(atingido < 100) cardAtingido.className='value warn';
-  else cardAtingido.className='value good';
+  setText('cardAtingido', fmtPct(atingido));
+  if(atingido < 80) setClass('cardAtingido','value bad');
+  else if(atingido < 100) setClass('cardAtingido','value warn');
+  else setClass('cardAtingido','value good');
 
-  cardInter.textContent=fmtMoney(inter);
-  cardNac.textContent=fmtMoney(nac);
-  cardInterPct.textContent=`${fmtPct(interPct)} da receita`;
-  cardNacPct.textContent=`${fmtPct(nacPct)} da receita`;
-  cardMediaDia.textContent=fmtMoney(mediaDia);
-  cardPrecisaDia.textContent=fmtMoney(precisaDia);
-
-  if(window.cardMetaDia) cardMetaDia.textContent=fmtMoney(metaDia);
-  if(window.cardDaysInMonth) cardDaysInMonth.textContent=`${dim} dias no mês`;
-  if(window.cardErroPct) cardErroPct.textContent=fmtPct(refPct);
-  if(window.cardPartInter) cardPartInter.textContent=fmtPct(interPct);
-  if(window.cardPartNac) cardPartNac.textContent=fmtPct(nacPct);
-  if(window.cardMes) cardMes.textContent=prettyMonth(monthKey);
+  setText('cardInter', fmtMoney(inter));
+  setText('cardNac', fmtMoney(nac));
+  setText('cardInterPct', `${fmtPct(interPct)} da receita`);
+  setText('cardNacPct', `${fmtPct(nacPct)} da receita`);
+  setText('cardMediaDia', fmtMoney(mediaDia));
+  setText('cardPrecisaDia', fmtMoney(precisaDia));
+  setText('cardMetaDia', fmtMoney(metaDia));
+  setText('cardDaysInMonth', `${dim} dias no mês`);
+  setText('cardErroPct', fmtPct(refPct));
+  setText('cardPartInter', fmtPct(interPct));
+  setText('cardPartNac', fmtPct(nacPct));
+  setText('cardMes', prettyMonth(monthKey));
 
   const baseRows = populated.length ? populated : rows;
   let best=baseRows[0], worst=baseRows[0];
   baseRows.forEach(r=>{ if(r.liquido>best.liquido) best=r; if(r.liquido<worst.liquido) worst=r; });
-  if(window.cardBestDay) cardBestDay.textContent=best?best.date.split('-').reverse().join('/'): '-';
-  if(window.cardBestVal) cardBestVal.textContent=best?fmtMoney(best.liquido):'0,00';
-  if(window.cardWorstDay) cardWorstDay.textContent=worst?worst.date.split('-').reverse().join('/'): '-';
-  if(window.cardWorstVal) cardWorstVal.textContent=worst?fmtMoney(worst.liquido):'0,00';
+  setText('cardBestDay', best?best.date.split('-').reverse().join('/'): '-');
+  setText('cardBestVal', best?fmtMoney(best.liquido):'0,00');
+  setText('cardWorstDay', worst?worst.date.split('-').reverse().join('/'): '-');
+  setText('cardWorstVal', worst?fmtMoney(worst.liquido):'0,00');
 
-  dashSubtitle.textContent=`Período com ${populated.length} dia(s) carregado(s). Último lançamento: ${populated.length ? populated[populated.length-1].date.split('-').reverse().join('/') : '-'}.`;
+  setText('dashSubtitle', `Período com ${populated.length} dia(s) carregado(s). Último lançamento: ${populated.length ? populated[populated.length-1].date.split('-').reverse().join('/') : '-'}.`);
 
-  if(window.cardStatus){
-    if(!meta){ cardStatus.textContent='Meta não definida'; cardStatus.className='pill bad'; }
-    else if(valorLiquido>=meta){ cardStatus.textContent='Meta batida'; cardStatus.className='pill good'; }
-    else { cardStatus.textContent='Abaixo da meta'; cardStatus.className='pill bad'; }
-  }
+  if(!meta){ setText('cardStatus','Meta não definida'); setClass('cardStatus','pill bad'); }
+  else if(valorLiquido>=meta){ setText('cardStatus','Meta batida'); setClass('cardStatus','pill good'); }
+  else { setText('cardStatus','Abaixo da meta'); setClass('cardStatus','pill bad'); }
 
   if(diarioMonth.value!==monthKey) diarioMonth.value=monthKey;
 }
@@ -694,6 +720,7 @@ function renderDiario(){
   const meta=state.metas[monthKey]||0;
   const metaDia=meta/daysInMonth(monthKey);
 
+  if(!window.diarioBody) return;
   diarioBody.innerHTML = rows.map((r,i)=>{
     const valorLiquidoDia = r.bruto - r.setor;
     const diff=valorLiquidoDia-metaDia;
@@ -886,11 +913,11 @@ document.querySelectorAll('.navbtn').forEach(btn=>btn.addEventListener('click',(
   document.getElementById(btn.dataset.page).classList.add('active');
 }));
 
-dashboardMonth.addEventListener('change',()=>{ renderDashboard(); renderDiario(); renderGraficos(); updateMetaPreview(); });
-diarioMonth.addEventListener('change',()=>{ renderDiario(); dashboardMonth.value=diarioMonth.value; renderDashboard(); renderGraficos(); updateMetaPreview(); });
-annualYear.addEventListener('change',renderAnual);
+if(window.dashboardMonth) dashboardMonth.addEventListener('change',()=>{ renderDashboard(); renderDiario(); renderGraficos(); updateMetaPreview(); });
+if(window.diarioMonth) diarioMonth.addEventListener('change',()=>{ renderDiario(); dashboardMonth.value=diarioMonth.value; renderDashboard(); renderGraficos(); updateMetaPreview(); });
+if(window.annualYear) annualYear.addEventListener('change',renderAnual);
 
-excelInput.addEventListener('change', async e=>{
+if(window.excelInput) excelInput.addEventListener('change', async e=>{
   const file = e.target.files[0];
   if (!file) return;
   try{
@@ -903,7 +930,7 @@ excelInput.addEventListener('change', async e=>{
   }
 });
 
-importToSupabaseBtn.addEventListener('click', async ()=>{
+if(window.importToSupabaseBtn) importToSupabaseBtn.addEventListener('click', async ()=>{
   const file = excelInput.files[0];
   if (!file){ alert('Selecione o Excel primeiro.'); return; }
   try{
@@ -917,8 +944,8 @@ importToSupabaseBtn.addEventListener('click', async ()=>{
   }
 });
 
-refreshBtn.addEventListener('click', ()=>refreshAllFromSupabases(true));
-refreshMetasBtn.addEventListener('click', async ()=>{
+if(window.refreshBtn) refreshBtn.addEventListener('click', ()=>refreshAllFromSupabases(true));
+if(window.refreshMetasBtn) refreshMetasBtn.addEventListener('click', async ()=>{
   try{
     await loadMetasFromSupabaseA();
     renderAll();
@@ -926,7 +953,7 @@ refreshMetasBtn.addEventListener('click', async ()=>{
   }catch(err){ alert(err.message); }
 });
 
-saveMetaBtn.addEventListener('click', async ()=>{
+if(window.saveMetaBtn) saveMetaBtn.addEventListener('click', async ()=>{
   if(!metaMonthInput.value) return alert('Selecione um mês.');
   const value = parseBR(metaValueInput.value);
   try{
@@ -938,7 +965,7 @@ saveMetaBtn.addEventListener('click', async ()=>{
   }catch(err){ alert(err.message); }
 });
 
-deleteMetaBtn.addEventListener('click', async ()=>{
+if(window.deleteMetaBtn) deleteMetaBtn.addEventListener('click', async ()=>{
   if(!metaMonthInput.value) return alert('Selecione um mês.');
   try{
     await deleteMetaFromSupabase(metaMonthInput.value);
@@ -949,14 +976,14 @@ deleteMetaBtn.addEventListener('click', async ()=>{
   }catch(err){ alert(err.message); }
 });
 
-loadExampleBtn.addEventListener('click', loadExample);
-clearImportedBtn.addEventListener('click', ()=>{
+if(window.loadExampleBtn) loadExampleBtn.addEventListener('click', loadExample);
+if(window.clearImportedBtn) clearImportedBtn.addEventListener('click', ()=>{
   if(!confirm('Limpar dados carregados da tela?')) return;
   state.brutoRows=[];
   state.refRows=[];
   renderAll();
 });
-metaMonthInput.addEventListener('change', ()=>{
+if(window.metaMonthInput) metaMonthInput.addEventListener('change', ()=>{
   metaValueInput.value = state.metas[metaMonthInput.value] || '';
   updateMetaPreview();
 });
