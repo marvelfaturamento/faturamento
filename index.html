@@ -5,7 +5,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Painel BI</title>
 <link rel="icon" href="data:,">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js">
+
+/* =========================================================
+   🔐 BLOQUEIO FINAL POR PERFIL - Faturamento
+   admin: tudo
+   operacional: sem Config
+   consulta: sem Config e demais abas restritas se existirem
+========================================================= */
+(function aplicarBloqueioFaturamento(){
+  const permissoesFaturamento = {
+    admin: ["dashboard", "diario", "graficos", "anual", "config", "registros", "conciliacao", "cadastro"],
+    operacional: ["dashboard", "diario", "graficos", "anual", "registros", "conciliacao", "cadastro"],
+    consulta: ["dashboard", "diario", "graficos", "anual"]
+  };
+  const liberadas = permissoesFaturamento[perfil] || permissoesFaturamento.consulta;
+  function aplicar(){
+    document.querySelectorAll('[data-page]').forEach(btn => {
+      const page = btn.getAttribute('data-page');
+      if(!liberadas.includes(page)) btn.style.display = 'none';
+    });
+    const ativa = document.querySelector('.page.active');
+    if(ativa && !liberadas.includes(ativa.id)){
+      const primeira = liberadas[0] || 'dashboard';
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('[data-page]').forEach(b => b.classList.remove('active'));
+      document.getElementById(primeira)?.classList.add('active');
+      document.querySelector(`[data-page="${primeira}"]`)?.classList.add('active');
+    }
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicar); else aplicar();
+  window.addEventListener('load', aplicar);
+})();
+
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <style>
@@ -226,6 +259,18 @@
 </div>
 
 <script>
+// 🔐 Acesso vindo do menu pai
+const MENU_PAI_URL = "https://menu-rho-olive.vercel.app/";
+const params = new URLSearchParams(window.location.search);
+const perfil = (params.get("perfil") || "").trim();
+const usuario = params.get("usuario") || "";
+const usuarioRef = (params.get("usuarioRef") || "").trim();
+if (!perfil) {
+  alert("Acesso não autorizado. Entre pelo menu principal.");
+  window.location.href = MENU_PAI_URL;
+  throw new Error("Acesso bloqueado");
+}
+
 Chart.register(ChartDataLabels);
 
 function setText(id, value){
