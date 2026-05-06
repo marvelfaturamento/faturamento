@@ -1256,12 +1256,7 @@ function loadExample(){
   renderAll();
 }
 
-document.querySelectorAll('.navbtn').forEach(btn=>btn.addEventListener('click',()=>{
-  document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById(btn.dataset.page).classList.add('active');
-}));
+
 
 function aplicarPermissoesFaturamento(){
   const permissoesFaturamento = {
@@ -1361,6 +1356,34 @@ if(window.metaMonthInput) metaMonthInput.addEventListener('change', ()=>{
   updateMetaPreview();
 });
 
+
+function bindMenuNavigation(){
+  document.querySelectorAll('.navbtn').forEach(btn=>{
+    btn.onclick = () => {
+      document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const target = btn.dataset.page;
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+
+      const page = document.getElementById(target);
+      if(page) page.classList.add('active');
+
+      setTimeout(()=>{
+        try{
+          if(target === 'graficos') renderGraficos();
+          if(target === 'anual') renderAnual();
+          if(target === 'diario') renderDiario();
+          if(target === 'dashboard') renderDashboard();
+        }catch(e){
+          console.warn('Falha ao renderizar aba:', e);
+        }
+      }, 80);
+    };
+  });
+}
+
+bindMenuNavigation();
 loadLocal();
 metaMonthInput.value = new Date().toISOString().slice(0,7);
 metaValueInput.value = state.metas[metaMonthInput.value] || '';
