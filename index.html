@@ -1561,11 +1561,43 @@ function loadExample(){
 
 
 function aplicarPermissoesFaturamento(){
-  const permissoesFaturamento = {
-    admin: ["dashboard", "diario", "graficos", "anual", "config", "registros", "conciliacao", "cadastro"],
-    operacional: ["dashboard", "diario", "graficos", "anual", "registros", "conciliacao", "cadastro"],
-    consulta: ["dashboard", "diario", "graficos", "anual"]
-  };
+ const permissoesFaturamento = {
+
+  admin: [
+    "dashboard",
+    "diario",
+    "graficos",
+    "anual",
+    "tabelas",
+    "analise",
+    "config",
+    "registros",
+    "conciliacao",
+    "cadastro"
+  ],
+
+  operacional: [
+    "dashboard",
+    "diario",
+    "graficos",
+    "anual",
+    "tabelas",
+    "analise",
+    "registros",
+    "conciliacao",
+    "cadastro"
+  ],
+
+  consulta: [
+    "dashboard",
+    "diario",
+    "graficos",
+    "anual",
+    "tabelas",
+    "analise"
+  ]
+
+};
   const liberadas = permissoesFaturamento[perfil] || permissoesFaturamento.consulta;
   document.querySelectorAll('[data-page]').forEach(btn => {
     const page = btn.getAttribute('data-page');
