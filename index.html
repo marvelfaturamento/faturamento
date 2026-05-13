@@ -494,42 +494,44 @@
 </section>
 <section id="analise" class="page">
 
-  <div class="panel">
+  <div class="annual-grid">
 
-    <div class="toolbar">
+    <div class="panel">
 
-      <div>
+      <div class="toolbar">
+
         <h2>Análise líquida</h2>
-        <div class="sub">
-          Refaturado + substituto + adicional mensal
+
+        <div style="display:flex;gap:10px;align-items:center">
+
+          <select id="analiseMonth"></select>
+
+          <input
+            type="text"
+            id="extraValueInput"
+            placeholder="Adicional do mês"
+            style="width:180px"
+          >
+
+          <button id="saveExtraBtn">
+            Salvar
+          </button>
+
         </div>
+
       </div>
 
-      <select id="analiseMonth"></select>
+      <canvas id="analiseMainChart"></canvas>
 
     </div>
 
-    <div class="cards">
+    <div class="panel">
 
-      <div class="mini-card">
-        <div class="label">Líquido faturamento</div>
-        <div id="analiseLiquido" class="value">0,00</div>
+      <div class="toolbar">
+        <h2>% refaturado + substituto</h2>
       </div>
 
-      <div class="mini-card">
-        <div class="label">Adicional mensal</div>
-        <div id="analiseExtra" class="value">0,00</div>
-      </div>
-
-      <div class="mini-card">
-        <div class="label">Líquido total</div>
-        <div id="analiseLiquidoTotal" class="value">0,00</div>
-      </div>
-
-      <div class="mini-card">
-        <div class="label">% total</div>
-        <div id="analisePct" class="value warn">0,0%</div>
-      </div>
+      <canvas id="analisePctChart"></canvas>
 
     </div>
 
@@ -1050,12 +1052,17 @@ function updateMetaPreview(){
 saveExtraBtn?.addEventListener('click', ()=>{
 
   const month =
-    extraMonthInput.value;
+    analiseMonth.value;
 
   if(!month) return;
 
   state.extras[month] =
     parseBR(extraValueInput.value);
+
+  localStorage.setItem(
+    'painel_bi_extras',
+    JSON.stringify(state.extras)
+  );
 
   renderAnalise();
 
@@ -1169,56 +1176,96 @@ function renderTabelas(){
 
 function renderAnalise(){
 
-  const monthKey =
-    analiseMonth.value ||
-    dashboardMonth.value ||
-    allMonthKeys().slice(-1)[0];
+  const meses =
+    allMonthKeys();
 
-  const rows =
-    getMonthDataset(monthKey);
+  const liquidoData = [];
+  const refData = [];
+  const substData = [];
+  const pctData = [];
 
-  const bruto =
-    rows.reduce((s,r)=>s+r.bruto,0);
+  meses.forEach(monthKey=>{
 
-  const liquido =
-    rows.reduce((s,r)=>s+r.liquido,0);
+    const rows =
+      getMonthDataset(monthKey);
 
-  const setor =
-    rows.reduce((s,r)=>s+r.setor,0);
+    const liquido =
+      rows.reduce((s,r)=>s+r.liquido,0);
 
-  const subst =
-    rows.reduce((s,r)=>s+r.substituicao,0);
+    const setor =
+      rows.reduce((s,r)=>s+r.setor,0);
 
-  const adicional =
-    Number(state.extras?.[monthKey] || 0);
+    const subst =
+      rows.reduce((s,r)=>s+r.substituicao,0);
 
-  const liquidoTotal =
-    liquido + adicional;
+    const adicional =
+      Number(state.extras?.[monthKey] || 0);
 
-  const pct =
-    bruto
-    ? ((setor + subst + adicional) / bruto) * 100
-    : 0;
+    const liquidoExtra =
+      liquido + adicional;
 
-  setText(
-    'analiseLiquido',
-    fmtMoney(liquido)
-  );
+    const pct =
+      liquidoExtra > 0
+      ? ((setor + subst) / liquidoExtra) * 100
+      : 0;
 
-  setText(
-    'analiseExtra',
-    fmtMoney(adicional)
-  );
+    liquidoData.push(liquidoExtra);
+    refData.push(setor);
+    substData.push(subst);
+    pctData.push(pct);
 
-  setText(
-    'analiseLiquidoTotal',
-    fmtMoney(liquidoTotal)
-  );
+  });
 
-  setText(
-    'analisePct',
-    fmtPct(pct)
-  );
+  if(state.charts.analiseMain){
+    state.charts.analiseMain.destroy();
+  }
+
+  if(state.charts.analisePct){
+    state.charts.analisePct.destroy();
+  }
+
+  state.charts.analiseMain =
+    new Chart(
+      document.getElementById('analiseMainChart'),
+      {
+        type:'bar',
+        data:{
+          labels:meses.map(prettyMonth),
+          datasets:[
+            {
+              label:'Líquido + adicional',
+              data:liquidoData
+            },
+            {
+              label:'Refaturado',
+              data:refData
+            },
+            {
+              label:'Substituto',
+              data:substData
+            }
+          ]
+        }
+      }
+    );
+
+  state.charts.analisePct =
+    new Chart(
+      document.getElementById('analisePctChart'),
+      {
+        type:'line',
+        data:{
+          labels:meses.map(prettyMonth),
+          datasets:[
+            {
+              label:'% refaturado + substituto',
+              data:pctData
+            }
+          ]
+        }
+      }
+    );
+
 }
 
 function renderEmpty(){
