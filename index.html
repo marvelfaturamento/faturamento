@@ -18,12 +18,13 @@
   body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
   .app{
   display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
-  .sidebar{
+.sidebar{
   background:var(--panel);
   padding:18px 14px;
   border-right:1px solid var(--line);
   display:flex;
   flex-direction:column;
+  gap:10px;
 }
   .brand{padding:8px 10px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .brand h1{margin:0 0 6px;font-size:16px}
@@ -1688,6 +1689,11 @@ document.querySelectorAll('.navbtn').forEach(btn=>{
 });
 
 tabelasYear?.addEventListener('change', renderTabelas);
+analiseMonth?.addEventListener(
+  'change',
+  renderAnalise
+);
+
 </script>
 
 
