@@ -84,12 +84,13 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><h1>📊 Painel BI</h1><p>Faturamento bruto, lucro real, nacional, internacional e erros.</p></div>
-    <button type="button" class="navbtn active" data-page="dashboard">📈 Dashboard</button>
+<div class="brand"><h1>📊 Painel BI</h1><p>Faturamento bruto, lucro real, nacional, internacional e erros.</p></div>
+<button type="button" class="navbtn active" data-page="dashboard">📈 Dashboard</button>
 <button type="button" class="navbtn" data-page="diario">🗓️ Diário</button>
 <button type="button" class="navbtn" data-page="graficos">📉 Gráficos</button>
 <button type="button" class="navbtn" data-page="anual">📆 Gráfico anual</button>
 <button type="button" class="navbtn" data-page="tabelas">📋 Tabelas</button>
+<button type="button" class="navbtn" data-page="analise">📊 Análise líquida</button>
 <button type="button" class="navbtn" data-page="config">⚙️ Config</button>
   </aside>
 
@@ -484,7 +485,50 @@
   </div>
 
 </section>
+<section id="analise" class="page">
 
+  <div class="panel">
+
+    <div class="toolbar">
+
+      <div>
+        <h2>Análise líquida</h2>
+        <div class="sub">
+          Refaturado + substituto + adicional mensal
+        </div>
+      </div>
+
+      <select id="analiseMonth"></select>
+
+    </div>
+
+    <div class="cards">
+
+      <div class="mini-card">
+        <div class="label">Líquido faturamento</div>
+        <div id="analiseLiquido" class="value">0,00</div>
+      </div>
+
+      <div class="mini-card">
+        <div class="label">Adicional mensal</div>
+        <div id="analiseExtra" class="value">0,00</div>
+      </div>
+
+      <div class="mini-card">
+        <div class="label">Líquido total</div>
+        <div id="analiseLiquidoTotal" class="value">0,00</div>
+      </div>
+
+      <div class="mini-card">
+        <div class="label">% total</div>
+        <div id="analisePct" class="value warn">0,0%</div>
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
 <section id="config" class="page">
       <div class="config-grid">
         <div class="panel">
