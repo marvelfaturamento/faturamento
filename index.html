@@ -18,7 +18,13 @@
   body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
   .app{
   display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
-  .sidebar{background:var(--panel);padding:18px 14px;border-right:1px solid var(--border);}
+  .sidebar{
+  background:var(--panel);
+  padding:18px 14px;
+  border-right:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+}
   .brand{padding:8px 10px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .brand h1{margin:0 0 6px;font-size:16px}
   .brand p{margin:0;font-size:12px;color:var(--muted);line-height:1.35}
@@ -561,6 +567,27 @@
 
         <div class="panel">
           <h2>Configuração interna</h2>
+<div class="meta-card" style="margin-top:12px">
+
+  <div class="label">Adicional mensal</div>
+
+  <input type="month" id="extraMonthInput">
+
+  <input
+    type="text"
+    id="extraValueInput"
+    placeholder="Valor adicional"
+    style="margin-top:8px"
+  >
+
+  <button
+    id="saveExtraBtn"
+    style="margin-top:8px"
+  >
+    Salvar adicional
+  </button>
+
+</div>
           <div class="sub">As credenciais da Supabase não aparecem na tela. Edite apenas no início do script do HTML. Cole URL e anonKey entre aspas simples e em uma linha só.</div>
           <div class="meta-card"><div class="label">Meta consultada</div><div id="configMetaPreview" class="value sm">77.232.432,43</div><div class="help">Ao trocar o mês, tudo recalcula junto.</div></div>
           <div class="meta-card" style="margin-top:12px"><div class="label">Fonte do bruto</div><div class="value sm">Relatório → Supabase A</div><div class="help">O painel passa a ler a base sincronizada.</div></div>
@@ -1018,6 +1045,20 @@ function updateMetaPreview(){
   const monthKey = dashboardMonth.value || allMonthKeys().slice(-1)[0] || metaMonthInput.value;
   configMetaPreview.textContent = fmtMoney(state.metas[monthKey] || 0);
 }
+
+saveExtraBtn?.addEventListener('click', ()=>{
+
+  const month =
+    extraMonthInput.value;
+
+  if(!month) return;
+
+  state.extras[month] =
+    parseBR(extraValueInput.value);
+
+  renderAnalise();
+
+});
 
 function getMonthDataset(monthKey){
   const dim=daysInMonth(monthKey);
@@ -1484,11 +1525,11 @@ function renderAll(){
   setSelectOptions(diarioMonth, months, prettyMonth);
   setSelectOptions(annualYear, allYears());
 setSelectOptions(tabelasYear, allYears());
-setSelectOptions(
-  analiseMonth,
-  months,
-  prettyMonth
-);
+setSelectOptions(analiseMonth, months, prettyMonth);
+if(extraMonthInput){
+  extraMonthInput.value =
+    dashboardMonth.value || months[months.length-1];
+}
 
 renderDashboard();
 renderDiario();
