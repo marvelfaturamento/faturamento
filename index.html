@@ -572,16 +572,10 @@ function setClass(id, value){
 
 
 function openPage(pageId){
+
   document.querySelectorAll('.navbtn').forEach(btn=>{
-
-  btn.addEventListener('click', ()=>{
-
-    openPage(btn.dataset.page);
-
+    btn.classList.toggle('active', btn.dataset.page === pageId);
   });
-
-});
-
   document.querySelectorAll('.page').forEach(page=>{
     page.classList.toggle('active', page.id === pageId);
   });
@@ -1117,6 +1111,13 @@ function renderDashboard(){
   const mediaDia=dim ? (valorLiquido/dim) : 0;
   const precisaDia=meta ? Math.max(0,falta/dim) : 0;
   const populated=rows.filter(r=>r.bruto>0);
+if(!populated.length){
+
+  renderEmpty();
+
+  return;
+
+}
 
   setText('cardBruto', fmtMoney(bruto));
   setText('cardRef', fmtMoney(setor));
@@ -1372,7 +1373,7 @@ function renderAll(){
   setSelectOptions(dashboardMonth, months, prettyMonth);
   setSelectOptions(diarioMonth, months, prettyMonth);
   setSelectOptions(annualYear, allYears());
-setSelectOptions(tabelasYear, allYears());
+setSelectOptions(tabelasYear, allYears(), y => y);
 
   renderDashboard();
   renderDiario();
@@ -1500,12 +1501,6 @@ if(window.metaMonthInput) metaMonthInput.addEventListener('change', ()=>{
 });
 
 
-document.querySelectorAll('.navbtn').forEach(btn=>{
-  btn.addEventListener('click', (e)=>{
-    e.preventDefault();
-    openPage(btn.dataset.page);
-  });
-});
 
 loadLocal();
 metaMonthInput.value = new Date().toISOString().slice(0,7);
@@ -1523,6 +1518,18 @@ window.addEventListener('load', async () => {
     console.error(err);
   }
 });
+
+document.querySelectorAll('.navbtn').forEach(btn=>{
+
+  btn.addEventListener('click', ()=>{
+
+    openPage(btn.dataset.page);
+
+  });
+
+});
+
+tabelasYear?.addEventListener('change', renderTabelas);
 </script>
 
 
