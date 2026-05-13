@@ -1320,92 +1320,138 @@ function getAdicional(monthKey){
 }
 
 function renderAnaliseLiquida(){
-  if(!window.Chart) return;
 
-  const monthKey = dashboardMonth?.value || allMonthKeys()[0];
-  const rows = getMonthDataset(monthKey);
+  try{
 
-  const setor = rows.reduce((s,r)=>s+r.setor,0);
-  const substituicao = rows.reduce((s,r)=>s+r.substituicao,0);
-  const liquido = rows.reduce((s,r)=>s+r.liquido,0);
+    const monthKey =
+      dashboardMonth.value || allMonthKeys().slice(-1)[0];
 
-  const adicional = getAdicional(monthKey);
-  const liquidoAjustado = liquido + adicional;
+    if(!monthKey) return;
 
-  const pct = liquidoAjustado > 0
-    ? ((setor + substituicao) / liquidoAjustado) * 100
-    : 0;
+    const rows = getMonthDataset(monthKey);
 
-  setText('analiseAdicional', fmtMoney(adicional));
-  setText('analiseLiquido', fmtMoney(liquidoAjustado));
-  setText('analisePct', fmtPct(pct));
+    const bruto =
+      rows.reduce((s,r)=>s+r.bruto,0);
 
-  const meses = allMonthKeys();
+    const setor =
+      rows.reduce((s,r)=>s+r.setor,0);
 
-  const refData = [];
-  const substData = [];
-  const liquidoData = [];
-  const pctData = [];
+    const substituicao =
+      rows.reduce((s,r)=>s+r.substituicao,0);
 
-  meses.forEach(m=>{
-    const r = getMonthDataset(m);
+    const liquido =
+      rows.reduce((s,r)=>s+r.liquido,0);
 
-    const setorMes = r.reduce((s,x)=>s+x.setor,0);
-    const substMes = r.reduce((s,x)=>s+x.substituicao,0);
-    const liquidoMes = r.reduce((s,x)=>s+x.liquido,0);
+    const adicional =
+      Number(
+        JSON.parse(
+          localStorage.getItem('painel_bi_adicionais') || '{}'
+        )[monthKey] || 0
+      );
 
-    const adicionalMes = getAdicional(m);
-    const liquidoFinal = liquidoMes + adicionalMes;
+    const liquidoAjustado =
+      liquido + adicional;
 
-    refData.push(setorMes);
-    substData.push(substMes);
-    liquidoData.push(liquidoFinal);
+    const pct =
+      liquidoAjustado > 0
+      ? ((setor + substituicao) / liquidoAjustado) * 100
+      : 0;
 
-    pctData.push(
-      liquidoFinal > 0
-      ? Number((((setorMes + substMes) / liquidoFinal) * 100).toFixed(1))
-      : 0
+    setText(
+      'analiseAdicional',
+      fmtMoney(adicional)
     );
-  });
 
-  const ctx1 = document.getElementById('chartAnaliseLiquida');
-  if(ctx1){
-    if(window.chartAnaliseLiquida instanceof Chart){
-      window.chartAnaliseLiquida.destroy();
+    setText(
+      'analiseLiquido',
+      fmtMoney(liquidoAjustado)
+    );
+
+    setText(
+      'analisePct',
+      fmtPct(pct)
+    );
+
+    const canvas1 =
+      document.getElementById('chartAnaliseLiquida');
+
+    const canvas2 =
+      document.getElementById('chartAnalisePct');
+
+    if(!canvas1 || !canvas2) return;
+
+    if(state.charts.chartAnaliseLiquida){
+      state.charts.chartAnaliseLiquida.destroy();
     }
 
-    window.chartAnaliseLiquida = new Chart(ctx1,{
-      type:'bar',
-      data:{
-        labels: meses.map(prettyMonth),
-        datasets:[
-          {label:'Refaturado', data: refData},
-          {label:'Substituto', data: substData},
-          {label:'Líquido ajustado', data: liquidoData}
-        ]
-      },
-      options:{responsive:true,maintainAspectRatio:false},
-      plugins:[ChartDataLabels]
-    });
-  }
-
-  const ctx2 = document.getElementById('chartAnalisePct');
-  if(ctx2){
-    if(window.chartAnalisePct instanceof Chart){
-      window.chartAnalisePct.destroy();
+    if(state.charts.chartAnalisePct){
+      state.charts.chartAnalisePct.destroy();
     }
 
-    window.chartAnalisePct = new Chart(ctx2,{
-      type:'line',
-      data:{
-        labels: meses.map(prettyMonth),
-        datasets:[
-          {label:'% erro líquido', data:pctData}
-        ]
-      },
-      options:{responsive:true,maintainAspectRatio:false},
-      plugins:[ChartDataLabels]
-    });
+    state.charts.chartAnaliseLiquida =
+      new Chart(canvas1,{
+        type:'bar',
+        data:{
+          labels:[
+            'Refaturado',
+            'Substituto',
+            'Líquido Ajustado'
+          ],
+          datasets:[{
+            data:[
+              setor,
+              substituicao,
+              liquidoAjustado
+            ]
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{display:false},
+            datalabels:{
+              color:'#fff',
+              formatter:(v)=>shortNumber(v)
+            }
+          }
+        }
+      });
+
+    state.charts.chartAnalisePct =
+      new Chart(canvas2,{
+        type:'doughnut',
+        data:{
+          labels:[
+            '% erro',
+            'Restante'
+          ],
+          datasets:[{
+            data:[
+              pct,
+              Math.max(0,100-pct)
+            ]
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            datalabels:{
+              color:'#fff',
+              formatter:(v)=>fmtPct(v)
+            }
+          }
+        }
+      });
+
+  }catch(err){
+
+    console.error(
+      'Erro renderAnaliseLiquida',
+      err
+    );
+
   }
 }
 
