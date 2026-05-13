@@ -89,6 +89,7 @@
     <button type="button" class="navbtn" data-page="graficos">📉 Gráficos</button>
     <button type="button" class="navbtn" data-page="anual">📆 Gráfico anual</button>
     <button type="button" class="navbtn" data-page="config">⚙️ Config</button>
+<button type="button" class="navbtn" data-page="analise">📊 Análise líquida</button>
   </aside>
 
   <main class="content">
@@ -440,7 +441,52 @@
       </div>
     </section>
 
-    <section id="config" class="page">
+    
+<section id="analise" class="page">
+  <div class="panel">
+    <div class="title-row">
+      <div>
+        <h2>Análise líquida ajustada</h2>
+        <div class="sub">Liquido + ajustes adicionais mensais</div>
+      </div>
+    </div>
+
+    <div class="cards" style="margin-bottom:14px">
+      <div class="mini-card">
+        <div class="label">Adicional mensal</div>
+        <div id="analiseAdicional" class="value sm">0,00</div>
+      </div>
+
+      <div class="mini-card">
+        <div class="label">Líquido ajustado</div>
+        <div id="analiseLiquido" class="value sm">0,00</div>
+      </div>
+
+      <div class="mini-card">
+        <div class="label">% erro líquido</div>
+        <div id="analisePct" class="value sm">0,0%</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Refaturado x substituto x líquido ajustado</h3>
+        <div style="height:340px">
+          <canvas id="chartAnaliseLiquida"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>% refaturado + substituto</h3>
+        <div style="height:340px">
+          <canvas id="chartAnalisePct"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="config" class="page">
       <div class="config-grid">
         <div class="panel">
           <h2>Importação e sincronização</h2>
@@ -472,6 +518,16 @@
 
         <div class="panel">
           <h2>Configuração interna</h2>
+
+<div class="panel" style="margin-top:14px">
+  <h3>Ajuste adicional mensal</h3>
+  <div class="row">
+    <input type="month" id="extraMonthInput">
+    <input type="number" id="extraValueInput" placeholder="Valor adicional">
+    <button id="saveExtraBtn">Salvar adicional</button>
+  </div>
+</div>
+
           <div class="sub">As credenciais da Supabase não aparecem na tela. Edite apenas no início do script do HTML. Cole URL e anonKey entre aspas simples e em uma linha só.</div>
           <div class="meta-card"><div class="label">Meta consultada</div><div id="configMetaPreview" class="value sm">77.232.432,43</div><div class="help">Ao trocar o mês, tudo recalcula junto.</div></div>
           <div class="meta-card" style="margin-top:12px"><div class="label">Fonte do bruto</div><div class="value sm">Relatório → Supabase A</div><div class="help">O painel passa a ler a base sincronizada.</div></div>
@@ -1241,6 +1297,101 @@ function renderValidation(){
   }
 }
 
+
+function getAdicional(monthKey){
+  return Number(state.adicionais?.[monthKey] || 0);
+}
+
+function renderAnaliseLiquida(){
+  if(!window.Chart) return;
+
+  const monthKey = dashboardMonth?.value || allMonthKeys()[0];
+  const rows = getMonthDataset(monthKey);
+
+  const setor = rows.reduce((s,r)=>s+r.setor,0);
+  const substituicao = rows.reduce((s,r)=>s+r.substituicao,0);
+  const liquido = rows.reduce((s,r)=>s+r.liquido,0);
+
+  const adicional = getAdicional(monthKey);
+  const liquidoAjustado = liquido + adicional;
+
+  const pct = liquidoAjustado > 0
+    ? ((setor + substituicao) / liquidoAjustado) * 100
+    : 0;
+
+  setText('analiseAdicional', fmtMoney(adicional));
+  setText('analiseLiquido', fmtMoney(liquidoAjustado));
+  setText('analisePct', fmtPct(pct));
+
+  const meses = allMonthKeys();
+
+  const refData = [];
+  const substData = [];
+  const liquidoData = [];
+  const pctData = [];
+
+  meses.forEach(m=>{
+    const r = getMonthDataset(m);
+
+    const setorMes = r.reduce((s,x)=>s+x.setor,0);
+    const substMes = r.reduce((s,x)=>s+x.substituicao,0);
+    const liquidoMes = r.reduce((s,x)=>s+x.liquido,0);
+
+    const adicionalMes = getAdicional(m);
+    const liquidoFinal = liquidoMes + adicionalMes;
+
+    refData.push(setorMes);
+    substData.push(substMes);
+    liquidoData.push(liquidoFinal);
+
+    pctData.push(
+      liquidoFinal > 0
+      ? Number((((setorMes + substMes) / liquidoFinal) * 100).toFixed(1))
+      : 0
+    );
+  });
+
+  const ctx1 = document.getElementById('chartAnaliseLiquida');
+  if(ctx1){
+    if(window.chartAnaliseLiquida instanceof Chart){
+      window.chartAnaliseLiquida.destroy();
+    }
+
+    window.chartAnaliseLiquida = new Chart(ctx1,{
+      type:'bar',
+      data:{
+        labels: meses.map(prettyMonth),
+        datasets:[
+          {label:'Refaturado', data: refData},
+          {label:'Substituto', data: substData},
+          {label:'Líquido ajustado', data: liquidoData}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false},
+      plugins:[ChartDataLabels]
+    });
+  }
+
+  const ctx2 = document.getElementById('chartAnalisePct');
+  if(ctx2){
+    if(window.chartAnalisePct instanceof Chart){
+      window.chartAnalisePct.destroy();
+    }
+
+    window.chartAnalisePct = new Chart(ctx2,{
+      type:'line',
+      data:{
+        labels: meses.map(prettyMonth),
+        datasets:[
+          {label:'% erro líquido', data:pctData}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false},
+      plugins:[ChartDataLabels]
+    });
+  }
+}
+
 function renderAll(){
   const months=allMonthKeys();
   renderMetaList();
@@ -1260,6 +1411,7 @@ function renderAll(){
   renderDiario();
   renderGraficos();
   renderAnual();
+  renderAnaliseLiquida();
   renderValidation();
   updateMetaPreview();
 }
@@ -1387,6 +1539,24 @@ document.querySelectorAll('.navbtn').forEach(btn=>{
     openPage(btn.dataset.page);
   });
 });
+
+
+if(window.saveExtraBtn){
+  saveExtraBtn.addEventListener('click', ()=>{
+    const month = extraMonthInput.value;
+    const value = Number(extraValueInput.value || 0);
+
+    if(!month) return alert('Selecione o mês');
+
+    state.adicionais[month] = value;
+    localStorage.setItem('painel_bi_adicionais', JSON.stringify(state.adicionais));
+
+    renderAnaliseLiquida();
+    renderAll();
+
+    alert('Adicional salvo');
+  });
+}
 
 loadLocal();
 metaMonthInput.value = new Date().toISOString().slice(0,7);
