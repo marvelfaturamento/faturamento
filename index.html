@@ -16,16 +16,8 @@
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
-  .app{
-  display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
-.sidebar{
-  background:var(--panel);
-  padding:18px 14px;
-  border-right:1px solid var(--line);
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
+  .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  .sidebar{background:var(--sidebar);padding:18px 14px;border-right:1px solid var(--line)}
   .brand{padding:8px 10px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .brand h1{margin:0 0 6px;font-size:16px}
   .brand p{margin:0;font-size:12px;color:var(--muted);line-height:1.35}
@@ -91,14 +83,12 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-<div class="brand"><h1>📊 Painel BI</h1><p>Faturamento bruto, lucro real, nacional, internacional e erros.</p></div>
-<button type="button" class="navbtn active" data-page="dashboard">📈 Dashboard</button>
-<button type="button" class="navbtn" data-page="diario">🗓️ Diário</button>
-<button type="button" class="navbtn" data-page="graficos">📉 Gráficos</button>
-<button type="button" class="navbtn" data-page="anual">📆 Gráfico anual</button>
-<button type="button" class="navbtn" data-page="tabelas">📋 Tabelas</button>
-<button type="button" class="navbtn" data-page="analise">📊 Análise líquida</button>
-<button type="button" class="navbtn" data-page="config">⚙️ Config</button>
+    <div class="brand"><h1>📊 Painel BI</h1><p>Faturamento bruto, lucro real, nacional, internacional e erros.</p></div>
+    <button type="button" class="navbtn active" data-page="dashboard">📈 Dashboard</button>
+    <button type="button" class="navbtn" data-page="diario">🗓️ Diário</button>
+    <button type="button" class="navbtn" data-page="graficos">📉 Gráficos</button>
+    <button type="button" class="navbtn" data-page="anual">📆 Gráfico anual</button>
+    <button type="button" class="navbtn" data-page="config">⚙️ Config</button>
   </aside>
 
   <main class="content">
@@ -450,95 +440,7 @@
       </div>
     </section>
 
-<section id="tabelas" class="page">
-
-  <div class="panel">
-
-    <div class="toolbar">
-      <div>
-        <h2>Tabela consolidada</h2>
-        <div class="sub">
-          Consolidado mensal do faturamento
-        </div>
-      </div>
-
-      <select id="tabelasYear"></select>
-    </div>
-
-    <div class="fit">
-
-      <table>
-
-        <thead>
-          <tr>
-            <th>Mês</th>
-            <th>Bruto</th>
-            <th>Refaturado</th>
-            <th>Substituto</th>
-            <th>Líquido</th>
-            <th>Meta</th>
-            <th>%</th>
-            <th>Internacional</th>
-            <th>Nacional</th>
-          </tr>
-        </thead>
-
-        <tbody id="tabelasBody"></tbody>
-
-      </table>
-
-    </div>
-
-  </div>
-
-</section>
-<section id="analise" class="page">
-
-  <div class="annual-grid">
-
-    <div class="panel">
-
-      <div class="toolbar">
-
-        <h2>Análise líquida</h2>
-
-        <div style="display:flex;gap:10px;align-items:center">
-
-          <select id="analiseMonth"></select>
-
-          <input
-            type="text"
-            id="extraValueInput"
-            placeholder="Adicional do mês"
-            style="width:180px"
-          >
-
-          <button id="saveExtraBtn">
-            Salvar
-          </button>
-
-        </div>
-
-      </div>
-
-      <canvas id="analiseMainChart"></canvas>
-
-    </div>
-
-    <div class="panel">
-
-      <div class="toolbar">
-        <h2>% refaturado + substituto</h2>
-      </div>
-
-      <canvas id="analisePctChart"></canvas>
-
-    </div>
-
-  </div>
-
-</section>
-<section id="config" class="page">
+    <section id="config" class="page">
       <div class="config-grid">
         <div class="panel">
           <h2>Importação e sincronização</h2>
@@ -570,27 +472,6 @@
 
         <div class="panel">
           <h2>Configuração interna</h2>
-<div class="meta-card" style="margin-top:12px">
-
-  <div class="label">Adicional mensal</div>
-
-  <input type="month" id="extraMonthInput">
-
-  <input
-    type="text"
-    id="extraValueInput"
-    placeholder="Valor adicional"
-    style="margin-top:8px"
-  >
-
-  <button
-    id="saveExtraBtn"
-    style="margin-top:8px"
-  >
-    Salvar adicional
-  </button>
-
-</div>
           <div class="sub">As credenciais da Supabase não aparecem na tela. Edite apenas no início do script do HTML. Cole URL e anonKey entre aspas simples e em uma linha só.</div>
           <div class="meta-card"><div class="label">Meta consultada</div><div id="configMetaPreview" class="value sm">77.232.432,43</div><div class="help">Ao trocar o mês, tudo recalcula junto.</div></div>
           <div class="meta-card" style="margin-top:12px"><div class="label">Fonte do bruto</div><div class="value sm">Relatório → Supabase A</div><div class="help">O painel passa a ler a base sincronizada.</div></div>
@@ -647,35 +528,21 @@ function setClass(id, value){
 
 
 function openPage(pageId){
-
   document.querySelectorAll('.navbtn').forEach(btn=>{
     btn.classList.toggle('active', btn.dataset.page === pageId);
   });
+
   document.querySelectorAll('.page').forEach(page=>{
     page.classList.toggle('active', page.id === pageId);
   });
 
   setTimeout(()=>{
     try{
-if(pageId === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
-
-if(pageId === 'diario' && typeof renderDiario === 'function') renderDiario();
-
-if(pageId === 'graficos' && typeof renderGraficos === 'function') renderGraficos();
-
-if(pageId === 'anual' && typeof renderAnual === 'function') renderAnual();
-
-if(pageId === 'tabelas' && typeof renderTabelas === 'function') {
-  renderTabelas();
-}
-
-if(pageId === 'analise' && typeof renderAnalise === 'function') {
-  renderAnalise();
-}
-
-if(pageId === 'config' && typeof updateMetaPreview === 'function') {
-  updateMetaPreview();
-}
+      if(pageId === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
+      if(pageId === 'diario' && typeof renderDiario === 'function') renderDiario();
+      if(pageId === 'graficos' && typeof renderGraficos === 'function') renderGraficos();
+      if(pageId === 'anual' && typeof renderAnual === 'function') renderAnual();
+      if(pageId === 'config' && typeof updateMetaPreview === 'function') updateMetaPreview();
     }catch(e){
       console.warn('Falha ao renderizar aba:', e);
     }
@@ -712,13 +579,7 @@ function hasSupabaseConfig(){
   return !!(SUPABASE_A.url && SUPABASE_A.anonKey && SUPABASE_B.url && SUPABASE_B.anonKey);
 }
 
-const state = {
-  brutoRows: [],
-  refRows: [],
-  metas: {},
-  extras: {},
-  charts: {}
-};
+const state = { brutoRows: [], refRows: [], metas: {}, charts: {} };
 
 function parseBR(v){
   if(v==null||v==='') return 0;
@@ -1049,25 +910,6 @@ function updateMetaPreview(){
   configMetaPreview.textContent = fmtMoney(state.metas[monthKey] || 0);
 }
 
-saveExtraBtn?.addEventListener('click', ()=>{
-
-  const month =
-    analiseMonth.value;
-
-  if(!month) return;
-
-  state.extras[month] =
-    parseBR(extraValueInput.value);
-
-  localStorage.setItem(
-    'painel_bi_extras',
-    JSON.stringify(state.extras)
-  );
-
-  renderAnalise();
-
-});
-
 function getMonthDataset(monthKey){
   const dim=daysInMonth(monthKey);
   const map=new Map();
@@ -1117,157 +959,6 @@ function aggregateYear(year){
   });
 }
 
-function renderTabelas(){
-
-  const year =
-    tabelasYear.value || allYears().slice(-1)[0];
-
-  const yearly =
-    aggregateYear(year);
-
-  tabelasBody.innerHTML =
-    yearly.map(m=>{
-
-      const meta =
-        state.metas[m.monthKey] || 0;
-
-      const pct =
-        meta
-        ? (m.liquido/meta)*100
-        : 0;
-
-      return `
-        <tr>
-
-          <td>${prettyMonth(m.monthKey)}</td>
-
-          <td>${fmtMoney(m.bruto)}</td>
-
-          <td>${fmtMoney(m.setor)}</td>
-
-          <td>${fmtMoney(m.substituicao)}</td>
-
-          <td>${fmtMoney(m.liquido)}</td>
-
-          <td>${fmtMoney(meta)}</td>
-
-          <td style="
-            color:${
-              pct >= 100
-              ? '#1fc16b'
-              : pct >= 80
-              ? '#f2c14f'
-              : '#ef4d61'
-            };
-            font-weight:800;
-          ">
-            ${fmtPct(pct)}
-          </td>
-
-          <td>${fmtMoney(m.inter)}</td>
-
-          <td>${fmtMoney(m.nac)}</td>
-
-        </tr>
-      `;
-
-    }).join('');
-}
-
-function renderAnalise(){
-
-  const meses =
-    allMonthKeys();
-
-  const liquidoData = [];
-  const refData = [];
-  const substData = [];
-  const pctData = [];
-
-  meses.forEach(monthKey=>{
-
-    const rows =
-      getMonthDataset(monthKey);
-
-    const liquido =
-      rows.reduce((s,r)=>s+r.liquido,0);
-
-    const setor =
-      rows.reduce((s,r)=>s+r.setor,0);
-
-    const subst =
-      rows.reduce((s,r)=>s+r.substituicao,0);
-
-    const adicional =
-      Number(state.extras?.[monthKey] || 0);
-
-    const liquidoExtra =
-      liquido + adicional;
-
-    const pct =
-      liquidoExtra > 0
-      ? ((setor + subst) / liquidoExtra) * 100
-      : 0;
-
-    liquidoData.push(liquidoExtra);
-    refData.push(setor);
-    substData.push(subst);
-    pctData.push(pct);
-
-  });
-
-  if(state.charts.analiseMain){
-    state.charts.analiseMain.destroy();
-  }
-
-  if(state.charts.analisePct){
-    state.charts.analisePct.destroy();
-  }
-
-  state.charts.analiseMain =
-    new Chart(
-      document.getElementById('analiseMainChart'),
-      {
-        type:'bar',
-        data:{
-          labels:meses.map(prettyMonth),
-          datasets:[
-            {
-              label:'Líquido + adicional',
-              data:liquidoData
-            },
-            {
-              label:'Refaturado',
-              data:refData
-            },
-            {
-              label:'Substituto',
-              data:substData
-            }
-          ]
-        }
-      }
-    );
-
-  state.charts.analisePct =
-    new Chart(
-      document.getElementById('analisePctChart'),
-      {
-        type:'line',
-        data:{
-          labels:meses.map(prettyMonth),
-          datasets:[
-            {
-              label:'% refaturado + substituto',
-              data:pctData
-            }
-          ]
-        }
-      }
-    );
-
-}
-
 function renderEmpty(){
   const ids = ['cardBruto','cardRef','cardSubst','cardLiquido','cardMeta','cardFalta','cardAtingido','cardErroPct','cardInter','cardNac','cardMediaDia','cardPrecisaDia','cardMetaDia','cardPartInter','cardPartNac','cardMes','cardBestDay','cardBestVal','cardWorstDay','cardWorstVal'];
   ids.forEach(id=>{
@@ -1310,13 +1001,6 @@ function renderDashboard(){
   const mediaDia=dim ? (valorLiquido/dim) : 0;
   const precisaDia=meta ? Math.max(0,falta/dim) : 0;
   const populated=rows.filter(r=>r.bruto>0);
-if(!populated.length){
-
-  renderEmpty();
-
-  return;
-
-}
 
   setText('cardBruto', fmtMoney(bruto));
   setText('cardRef', fmtMoney(setor));
@@ -1572,20 +1256,11 @@ function renderAll(){
   setSelectOptions(dashboardMonth, months, prettyMonth);
   setSelectOptions(diarioMonth, months, prettyMonth);
   setSelectOptions(annualYear, allYears());
-setSelectOptions(tabelasYear, allYears());
-setSelectOptions(analiseMonth, months, prettyMonth);
-if(extraMonthInput){
-  extraMonthInput.value =
-    dashboardMonth.value || months[months.length-1];
-}
-
-renderDashboard();
-renderDiario();
-renderGraficos();
-renderAnual();
-renderTabelas();
-renderAnalise();
-renderValidation();
+  renderDashboard();
+  renderDiario();
+  renderGraficos();
+  renderAnual();
+  renderValidation();
   updateMetaPreview();
 }
 
@@ -1608,43 +1283,11 @@ function loadExample(){
 
 
 function aplicarPermissoesFaturamento(){
- const permissoesFaturamento = {
-
-  admin: [
-    "dashboard",
-    "diario",
-    "graficos",
-    "anual",
-    "tabelas",
-    "analise",
-    "config",
-    "registros",
-    "conciliacao",
-    "cadastro"
-  ],
-
-  operacional: [
-    "dashboard",
-    "diario",
-    "graficos",
-    "anual",
-    "tabelas",
-    "analise",
-    "registros",
-    "conciliacao",
-    "cadastro"
-  ],
-
-  consulta: [
-    "dashboard",
-    "diario",
-    "graficos",
-    "anual",
-    "tabelas",
-    "analise"
-  ]
-
-};
+  const permissoesFaturamento = {
+    admin: ["dashboard", "diario", "graficos", "anual", "config", "registros", "conciliacao", "cadastro"],
+    operacional: ["dashboard", "diario", "graficos", "anual", "registros", "conciliacao", "cadastro"],
+    consulta: ["dashboard", "diario", "graficos", "anual"]
+  };
   const liberadas = permissoesFaturamento[perfil] || permissoesFaturamento.consulta;
   document.querySelectorAll('[data-page]').forEach(btn => {
     const page = btn.getAttribute('data-page');
@@ -1665,7 +1308,6 @@ aplicarPermissoesFaturamento();
 if(window.dashboardMonth) dashboardMonth.addEventListener('change',()=>{ renderDashboard(); renderDiario(); renderGraficos(); updateMetaPreview(); });
 if(window.diarioMonth) diarioMonth.addEventListener('change',()=>{ renderDiario(); dashboardMonth.value=diarioMonth.value; renderDashboard(); renderGraficos(); updateMetaPreview(); });
 if(window.annualYear) annualYear.addEventListener('change',renderAnual);
-tabelasYear.addEventListener('change', renderTabelas);
 
 if(window.excelInput) excelInput.addEventListener('change', async e=>{
   const file = e.target.files[0];
@@ -1739,6 +1381,12 @@ if(window.metaMonthInput) metaMonthInput.addEventListener('change', ()=>{
 });
 
 
+document.querySelectorAll('.navbtn').forEach(btn=>{
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    openPage(btn.dataset.page);
+  });
+});
 
 loadLocal();
 metaMonthInput.value = new Date().toISOString().slice(0,7);
@@ -1756,23 +1404,6 @@ window.addEventListener('load', async () => {
     console.error(err);
   }
 });
-
-document.querySelectorAll('.navbtn').forEach(btn=>{
-
-  btn.addEventListener('click', ()=>{
-
-    openPage(btn.dataset.page);
-
-  });
-
-});
-
-tabelasYear?.addEventListener('change', renderTabelas);
-analiseMonth?.addEventListener(
-  'change',
-  renderAnalise
-);
-
 </script>
 
 
