@@ -639,6 +639,10 @@ if(pageId === 'tabelas' && typeof renderTabelas === 'function') {
   renderTabelas();
 }
 
+if(pageId === 'analise' && typeof renderAnalise === 'function') {
+  renderAnalise();
+}
+
 if(pageId === 'config' && typeof updateMetaPreview === 'function') {
   updateMetaPreview();
 }
@@ -678,7 +682,13 @@ function hasSupabaseConfig(){
   return !!(SUPABASE_A.url && SUPABASE_A.anonKey && SUPABASE_B.url && SUPABASE_B.anonKey);
 }
 
-const state = { brutoRows: [], refRows: [], metas: {}, charts: {} };
+const state = {
+  brutoRows: [],
+  refRows: [],
+  metas: {},
+  extras: {},
+  charts: {}
+};
 
 function parseBR(v){
   if(v==null||v==='') return 0;
@@ -1114,6 +1124,61 @@ function renderTabelas(){
 
     }).join('');
 }
+
+function renderAnalise(){
+
+  const monthKey =
+    analiseMonth.value ||
+    dashboardMonth.value ||
+    allMonthKeys().slice(-1)[0];
+
+  const rows =
+    getMonthDataset(monthKey);
+
+  const bruto =
+    rows.reduce((s,r)=>s+r.bruto,0);
+
+  const liquido =
+    rows.reduce((s,r)=>s+r.liquido,0);
+
+  const setor =
+    rows.reduce((s,r)=>s+r.setor,0);
+
+  const subst =
+    rows.reduce((s,r)=>s+r.substituicao,0);
+
+  const adicional =
+    Number(state.extras?.[monthKey] || 0);
+
+  const liquidoTotal =
+    liquido + adicional;
+
+  const pct =
+    bruto
+    ? ((setor + subst + adicional) / bruto) * 100
+    : 0;
+
+  setText(
+    'analiseLiquido',
+    fmtMoney(liquido)
+  );
+
+  setText(
+    'analiseExtra',
+    fmtMoney(adicional)
+  );
+
+  setText(
+    'analiseLiquidoTotal',
+    fmtMoney(liquidoTotal)
+  );
+
+  setText(
+    'analisePct',
+    fmtPct(pct)
+  );
+}
+
 function renderEmpty(){
   const ids = ['cardBruto','cardRef','cardSubst','cardLiquido','cardMeta','cardFalta','cardAtingido','cardErroPct','cardInter','cardNac','cardMediaDia','cardPrecisaDia','cardMetaDia','cardPartInter','cardPartNac','cardMes','cardBestDay','cardBestVal','cardWorstDay','cardWorstVal'];
   ids.forEach(id=>{
@@ -1419,12 +1484,19 @@ function renderAll(){
   setSelectOptions(diarioMonth, months, prettyMonth);
   setSelectOptions(annualYear, allYears());
 setSelectOptions(tabelasYear, allYears());
+setSelectOptions(
+  analiseMonth,
+  months,
+  prettyMonth
+);
 
-  renderDashboard();
-  renderDiario();
-  renderGraficos();
-  renderAnual();
-  renderValidation();
+renderDashboard();
+renderDiario();
+renderGraficos();
+renderAnual();
+renderTabelas();
+renderAnalise();
+renderValidation();
   updateMetaPreview();
 }
 
