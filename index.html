@@ -5,81 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel BI</title>
 <link rel="icon" href="data:,">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<style>
-  :root{
-    --bg:#07152f; --sidebar:#031129; --panel:#1c3165; --panel2:#223b73; --text:#eef4ff;
-    --muted:#adc0e4; --line:rgba(255,255,255,.08); --cyan:#35b9ff; --pink:#ff5f96;
-    --orange:#ffb23e; --green:#1fc16b; --red:#ef4d61; --yellow:#f2c14f;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
-  .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
-  .sidebar{background:var(--sidebar);padding:18px 14px;border-right:1px solid var(--line)}
-  .brand{padding:8px 10px 16px;border-bottom:1px solid var(--line);margin-bottom:14px}
-  .brand h1{margin:0 0 6px;font-size:16px}
-  .brand p{margin:0;font-size:12px;color:var(--muted);line-height:1.35}
-  .navbtn{width:100%;border:none;border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;color:var(--text);background:rgba(255,255,255,.04);font-size:15px;font-weight:800;text-align:left}
-  .navbtn.active,.navbtn:hover{background:#0c3452}
-  .content{padding:16px}
-  .page{display:none}
-  .page.active{display:block}
-  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 10px 24px rgba(0,0,0,.15)}
-  .hero{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
-  .sub{color:var(--muted);font-size:12px;margin:2px 0 10px}
-  h2,h3{margin:0}
-  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-  .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-  .mini-card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:88px}
-  .label{font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.2}
-  .value{font-size:18px;font-weight:800;line-height:1.02;letter-spacing:-.02em;word-break:break-word}
-  .value.sm{font-size:16px}
-  .value.good{color:var(--green)}
-  .value.bad{color:var(--red)}
-  .value.warn{color:var(--yellow)}
-  .help{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.2}
-  .metrics-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
-  .pill{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}
-  .pill.good{background:rgba(31,193,107,.16);color:#ffe08a}
-  .pill.bad{background:rgba(239,77,97,.16);color:#ffe08a}
-  .fit{height:calc(100vh - 190px);overflow:auto;border-radius:14px}
-  table{width:100%;border-collapse:collapse;table-layout:fixed}
-  thead th{background:#02102a;color:#fff;font-size:14px;padding:10px 8px}
-  tbody td{padding:8px 8px;font-size:13px;text-align:center;border-bottom:1px solid rgba(255,255,255,.03)}
-  .charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
-  .mini-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .annual-two{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-  .chart-card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:20px;padding:12px 12px 6px}
-  .chart-title{font-size:16px;font-weight:800;margin:4px 4px 10px}
-  canvas{width:100%!important;height:250px!important}
-  .small-canvas{height:220px!important}
-  .config-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
-  label{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
-  input,button,select,textarea{width:100%;background:#0b1f44;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font:inherit;font-size:12px}
-  button{cursor:pointer;font-weight:800}
-  .meta-card{padding:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px}
-  .meta-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
-  .meta-pill{padding:8px 10px;border-radius:14px;background:#0b1f44;border:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px}
-  .hint{font-size:12px;color:var(--muted)}
-  .top-actions{display:flex;gap:10px;flex-wrap:wrap}
-  .top-actions>*{width:auto}
-  #dashboard h2{font-size:22px;margin-bottom:2px}
-  #dashboard select{padding:8px 10px;font-size:13px}
-  #config h2{font-size:20px}
-  .badge{display:inline-block;padding:4px 8px;border-radius:10px;background:rgba(53,185,255,.15);color:#cfefff;font-size:11px;font-weight:700}
-  @media (max-width:1200px){
-    .app{grid-template-columns:1fr}
-    .sidebar{display:flex;gap:8px;overflow:auto}
-    .brand{display:none}
-    .navbtn{min-width:150px}
-    .hero,.charts-grid,.config-grid{grid-template-columns:1fr}
-    .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .mini-charts,.annual-two{grid-template-columns:1fr}
-  }
-</style>
-<meta id="dcngeagmmhegagicpcmpinaoklddcgon"></head>
+
+
+
+
+<meta id="dcngeagmmhegagicpcmpinaoklddcgon">  <link rel="stylesheet" href="css/faturamento.css">
+</head>
 <body>
 <div class="app">
   <aside class="sidebar">
@@ -96,38 +27,38 @@
       <div class="hero">
         <div class="panel">
           <div class="toolbar">
-            <div><h2>Visão Geral</h2><div id="dashSubtitle" class="sub">Período com 30 dia(s) carregado(s). Último lançamento: 30/04/2026.</div></div>
+            <div><h2>Visão Geral</h2><div id="dashSubtitle" class="sub">Período com 29 dia(s) carregado(s). Último lançamento: 30/01/2026.</div></div>
             <select id="dashboardMonth"><option value="2026-01">janeiro de 2026</option><option value="2026-02">fevereiro de 2026</option><option value="2026-03">março de 2026</option><option value="2026-04">abril de 2026</option><option value="2026-05">maio de 2026</option><option value="2026-06">junho de 2026</option><option value="2026-07">julho de 2026</option><option value="2026-08">agosto de 2026</option><option value="2026-09">setembro de 2026</option><option value="2026-10">outubro de 2026</option><option value="2026-11">novembro de 2026</option><option value="2026-12">dezembro de 2026</option></select>
           </div>
           <div class="cards">
-            <div class="mini-card"><div class="label">Faturamento bruto</div><div id="cardBruto" class="value">76.175.191,99</div><div class="help">Soma do bruto do mês</div></div>
-            <div class="mini-card"><div class="label">Refaturado</div><div id="cardRef" class="value sm">629.999,43</div><div class="help">Valor do setor</div></div>
-            <div class="mini-card"><div class="label">Valor líquido</div><div id="cardLiquido" class="value">75.545.192,56</div><div class="help">Bruto - setor</div></div>
-            <div class="mini-card"><div class="label">Meta do mês</div><div id="cardMeta" class="value warn">77.232.432,43</div><div class="help">Configuração mensal</div></div>
+            <div class="mini-card"><div class="label">Faturamento bruto</div><div id="cardBruto" class="value">65.056.607,98</div><div class="help">Soma do bruto do mês</div></div>
+            <div class="mini-card"><div class="label">Refaturado</div><div id="cardRef" class="value sm">853.312,28</div><div class="help">Valor do setor</div></div>
+            <div class="mini-card"><div class="label">Valor líquido</div><div id="cardLiquido" class="value">64.203.295,70</div><div class="help">Bruto - setor</div></div>
+            <div class="mini-card"><div class="label">Meta do mês</div><div id="cardMeta" class="value warn">70.467.820,06</div><div class="help">Configuração mensal</div></div>
 
-            <div class="mini-card"><div class="label">Falta / sobra</div><div id="cardFalta" class="value bad sm">1.687.239,87</div><div class="help">Verde = acima da meta</div></div>
-            <div class="mini-card"><div class="label">% atingido</div><div id="cardAtingido" class="value warn">97,8%</div><div class="help">Valor líquido ÷ meta</div></div>
-            <div class="mini-card"><div class="label">Internacional</div><div id="cardInter" class="value sm">42.374.244,68</div><div id="cardInterPct" class="help">55,6% da receita</div></div>
-            <div class="mini-card"><div class="label">Nacional</div><div id="cardNac" class="value sm">33.800.947,31</div><div id="cardNacPct" class="help">44,4% da receita</div></div>
+            <div class="mini-card"><div class="label">Falta / sobra</div><div id="cardFalta" class="value bad sm">6.264.524,36</div><div class="help">Verde = acima da meta</div></div>
+            <div class="mini-card"><div class="label">% atingido</div><div id="cardAtingido" class="value warn">91,1%</div><div class="help">Valor líquido ÷ meta</div></div>
+            <div class="mini-card"><div class="label">Internacional</div><div id="cardInter" class="value sm">23.997.707,30</div><div id="cardInterPct" class="help">36,9% da receita</div></div>
+            <div class="mini-card"><div class="label">Nacional</div><div id="cardNac" class="value sm">41.058.900,69</div><div id="cardNacPct" class="help">63,1% da receita</div></div>
           </div>
           <div class="metrics-row">
-            <div class="mini-card"><div class="label">Média líquida por dia</div><div id="cardMediaDia" class="value sm">2.518.173,09</div><div class="help">Valor líquido ÷ dias do mês</div></div>
-            <div class="mini-card"><div class="label">Precisa por dia</div><div id="cardPrecisaDia" class="value good">56.241,33</div><div class="help">Para bater a meta</div></div>
-            <div class="mini-card"><div class="label">Substituto</div><div id="cardSubst" class="value sm">450.733,06</div><div class="help">Conferência</div></div>
+            <div class="mini-card"><div class="label">Média líquida por dia</div><div id="cardMediaDia" class="value sm">2.071.074,05</div><div class="help">Valor líquido ÷ dias do mês</div></div>
+            <div class="mini-card"><div class="label">Precisa por dia</div><div id="cardPrecisaDia" class="value good">202.081,43</div><div class="help">Para bater a meta</div></div>
+            <div class="mini-card"><div class="label">Substituto</div><div id="cardSubst" class="value sm">320.871,47</div><div class="help">Conferência</div></div>
           </div>
         </div>
         <div class="panel">
           <h2>Resumo Executivo</h2><div class="sub">Leitura do mês filtrado</div>
           <div class="cards" style="grid-template-columns:1fr 1fr">
-            <div class="mini-card"><div class="label">Melhor dia</div><div id="cardBestDay" class="value sm">30/04/2026</div><div id="cardBestVal" class="help">5.940.784,07</div></div>
-            <div class="mini-card"><div class="label">Pior dia</div><div id="cardWorstDay" class="value sm">05/04/2026</div><div id="cardWorstVal" class="help">164.341,04</div></div>
-            <div class="mini-card"><div class="label">Meta por dia</div><div id="cardMetaDia" class="value sm">2.574.414,41</div><div id="cardDaysInMonth" class="help">30 dias no mês</div></div>
-            <div class="mini-card"><div class="label">% refaturado</div><div id="cardErroPct" class="value warn">0,8%</div><div class="help">(Refaturado + substituto) ÷ bruto</div></div>
+            <div class="mini-card"><div class="label">Melhor dia</div><div id="cardBestDay" class="value sm">15/01/2026</div><div id="cardBestVal" class="help">3.731.333,79</div></div>
+            <div class="mini-card"><div class="label">Pior dia</div><div id="cardWorstDay" class="value sm">11/01/2026</div><div id="cardWorstVal" class="help">103.902,29</div></div>
+            <div class="mini-card"><div class="label">Meta por dia</div><div id="cardMetaDia" class="value sm">2.273.155,49</div><div id="cardDaysInMonth" class="help">31 dias no mês</div></div>
+            <div class="mini-card"><div class="label">% refaturado</div><div id="cardErroPct" class="value warn">1,8%</div><div class="help">(Refaturado + substituto) ÷ bruto</div></div>
           </div>
           <div style="margin-top:16px" class="cards">
-            <div class="mini-card"><div class="label">Participação internacional</div><div id="cardPartInter" class="value sm">55,6%</div></div>
-            <div class="mini-card"><div class="label">Participação nacional</div><div id="cardPartNac" class="value sm">44,4%</div></div>
-            <div class="mini-card"><div class="label">Mês consultado</div><div id="cardMes" class="value sm">abril de 2026</div></div>
+            <div class="mini-card"><div class="label">Participação internacional</div><div id="cardPartInter" class="value sm">36,9%</div></div>
+            <div class="mini-card"><div class="label">Participação nacional</div><div id="cardPartNac" class="value sm">63,1%</div></div>
+            <div class="mini-card"><div class="label">Mês consultado</div><div id="cardMes" class="value sm">janeiro de 2026</div></div>
             <div class="mini-card"><div class="label">Status do mês</div><div style="margin-top:10px"><span id="cardStatus" class="pill bad">Abaixo da meta</span></div><div class="help">Considera o mês filtrado</div></div>
           </div></div>
       </div>
@@ -136,289 +67,298 @@
     <section id="diario" class="page">
       <div class="panel">
         <div class="toolbar"><div><h2>Faturamento diário</h2><div class="sub">Meta dia = meta do mês ÷ total de dias do mês selecionado</div></div><select id="diarioMonth"><option value="2026-01">janeiro de 2026</option><option value="2026-02">fevereiro de 2026</option><option value="2026-03">março de 2026</option><option value="2026-04">abril de 2026</option><option value="2026-05">maio de 2026</option><option value="2026-06">junho de 2026</option><option value="2026-07">julho de 2026</option><option value="2026-08">agosto de 2026</option><option value="2026-09">setembro de 2026</option><option value="2026-10">outubro de 2026</option><option value="2026-11">novembro de 2026</option><option value="2026-12">dezembro de 2026</option></select></div>
-        <div class="fit"><table><thead><tr><th style="width:10%">Dia</th><th style="width:15%">Bruto</th><th style="width:12%">Refaturado</th><th style="width:11%">Setor</th><th style="width:12%">Substituição</th><th style="width:14%">Lucro real</th><th style="width:13%">Meta dia</th><th style="width:13%">Diferença</th></tr></thead><tbody id="diarioBody"><tr style="background:rgba(31,193,107,0.2084682542867308)">
-      <td>01/04/2026</td>
-      <td>3.015.094,54</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>2.994.094,56</td>
-      <td>2.574.414,41</td>
-      <td>419.680,14</td>
-    </tr><tr style="background:rgba(31,193,107,0.26346927440674417)">
-      <td>02/04/2026</td>
-      <td>3.352.226,49</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.331.226,51</td>
-      <td>2.574.414,41</td>
-      <td>756.812,09</td>
-    </tr><tr style="background:rgba(239,77,97,0.45850876753746705)">
-      <td>03/04/2026</td>
-      <td>643.096,39</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>622.096,41</td>
-      <td>2.574.414,41</td>
-      <td>-1.952.318,01</td>
-    </tr><tr style="background:rgba(239,77,97,0.4110791855244951)">
-      <td>04/04/2026</td>
-      <td>933.818,77</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>912.818,79</td>
-      <td>2.574.414,41</td>
-      <td>-1.661.595,63</td>
-    </tr><tr style="background:rgba(239,77,97,0.5331887624635313)">
-      <td>05/04/2026</td>
-      <td>185.341,02</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>164.341,04</td>
-      <td>2.574.414,41</td>
-      <td>-2.410.073,38</td>
-    </tr><tr style="background:rgba(239,77,97,0.32125115088000866)">
-      <td>06/04/2026</td>
-      <td>1.484.424,93</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>1.463.424,95</td>
-      <td>2.574.414,41</td>
-      <td>-1.110.989,47</td>
-    </tr><tr style="background:rgba(31,193,107,0.22617325809117977)">
-      <td>07/04/2026</td>
-      <td>3.123.618,39</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.102.618,41</td>
-      <td>2.574.414,41</td>
-      <td>528.203,99</td>
-    </tr><tr style="background:rgba(31,193,107,0.19187370246859897)">
-      <td>08/04/2026</td>
-      <td>2.913.377,27</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>2.892.377,29</td>
-      <td>2.574.414,41</td>
-      <td>317.962,87</td>
-    </tr><tr style="background:rgba(31,193,107,0.3003558729556382)">
-      <td>09/04/2026</td>
-      <td>3.578.325,04</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.557.325,06</td>
-      <td>2.574.414,41</td>
-      <td>982.910,64</td>
-    </tr><tr style="background:rgba(31,193,107,0.34683056395094286)">
-      <td>10/04/2026</td>
-      <td>3.863.194,36</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.842.194,38</td>
-      <td>2.574.414,41</td>
-      <td>1.267.779,96</td>
-    </tr><tr style="background:rgba(239,77,97,0.1914596694698459)">
-      <td>11/04/2026</td>
-      <td>2.279.989,36</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>2.258.989,38</td>
-      <td>2.574.414,41</td>
-      <td>-315.425,04</td>
-    </tr><tr style="background:rgba(239,77,97,0.5005475661852077)">
-      <td>12/04/2026</td>
-      <td>385.417,13</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>364.417,15</td>
-      <td>2.574.414,41</td>
-      <td>-2.209.997,27</td>
-    </tr><tr style="background:rgba(239,77,97,0.29259436742305905)">
-      <td>13/04/2026</td>
-      <td>1.660.078,35</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>1.639.078,37</td>
-      <td>2.574.414,41</td>
-      <td>-935.336,05</td>
-    </tr><tr style="background:rgba(31,193,107,0.21773931572389285)">
-      <td>14/04/2026</td>
-      <td>3.071.922,05</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.050.922,07</td>
-      <td>2.574.414,41</td>
-      <td>476.507,65</td>
-    </tr><tr style="background:rgba(31,193,107,0.20072150011655399)">
-      <td>15/04/2026</td>
-      <td>2.967.610,36</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>2.946.610,38</td>
-      <td>2.574.414,41</td>
-      <td>372.195,96</td>
-    </tr><tr style="background:rgba(31,193,107,0.36641584195407934)">
-      <td>16/04/2026</td>
-      <td>3.983.243,46</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.962.243,48</td>
-      <td>2.574.414,41</td>
-      <td>1.387.829,06</td>
-    </tr><tr style="background:rgba(31,193,107,0.2592753342470376)">
-      <td>17/04/2026</td>
-      <td>3.326.519,49</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.305.519,51</td>
-      <td>2.574.414,41</td>
-      <td>731.105,09</td>
-    </tr><tr style="background:rgba(239,77,97,0.27401826493787157)">
-      <td>18/04/2026</td>
-      <td>1.773.941,65</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>1.752.941,67</td>
-      <td>2.574.414,41</td>
-      <td>-821.472,75</td>
-    </tr><tr style="background:rgba(239,77,97,0.47817263032434054)">
-      <td>19/04/2026</td>
-      <td>522.565,60</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>501.565,62</td>
-      <td>2.574.414,41</td>
-      <td>-2.072.848,80</td>
-    </tr><tr style="background:rgba(239,77,97,0.21703149319545534)">
-      <td>20/04/2026</td>
-      <td>2.123.245,38</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>2.102.245,40</td>
-      <td>2.574.414,41</td>
-      <td>-472.169,02</td>
-    </tr><tr style="background:rgba(239,77,97,0.2634886609047852)">
-      <td>21/04/2026</td>
-      <td>1.838.483,47</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>1.817.483,49</td>
-      <td>2.574.414,41</td>
-      <td>-756.930,93</td>
-    </tr><tr style="background:rgba(31,193,107,0.3053433238215568)">
-      <td>22/04/2026</td>
-      <td>3.608.895,91</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.587.895,93</td>
-      <td>2.574.414,41</td>
-      <td>1.013.481,51</td>
-    </tr><tr style="background:rgba(31,193,107,0.29253908274192614)">
-      <td>23/04/2026</td>
-      <td>3.530.411,57</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.509.411,59</td>
-      <td>2.574.414,41</td>
-      <td>934.997,17</td>
-    </tr><tr style="background:rgba(31,193,107,0.3788634782093706)">
-      <td>24/04/2026</td>
-      <td>4.059.541,97</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>4.038.541,99</td>
-      <td>2.574.414,41</td>
-      <td>1.464.127,57</td>
-    </tr><tr style="background:rgba(239,77,97,0.21293682446562306)">
-      <td>25/04/2026</td>
-      <td>2.148.343,89</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>2.127.343,91</td>
-      <td>2.574.414,41</td>
-      <td>-447.070,51</td>
-    </tr><tr style="background:rgba(239,77,97,0.5111679630598422)">
-      <td>26/04/2026</td>
-      <td>320.318,79</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>299.318,81</td>
-      <td>2.574.414,41</td>
-      <td>-2.275.095,61</td>
-    </tr><tr style="background:rgba(239,77,97,0.18415708597927433)">
-      <td>27/04/2026</td>
-      <td>2.324.750,97</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>2.303.750,99</td>
-      <td>2.574.414,41</td>
-      <td>-270.663,43</td>
-    </tr><tr style="background:rgba(31,193,107,0.2587211523748197)">
-      <td>28/04/2026</td>
-      <td>3.323.122,60</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.302.122,62</td>
-      <td>2.574.414,41</td>
-      <td>727.708,20</td>
-    </tr><tr style="background:rgba(31,193,107,0.348346885324171)">
-      <td>29/04/2026</td>
-      <td>3.872.488,74</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>3.851.488,76</td>
-      <td>2.574.414,41</td>
-      <td>1.277.074,34</td>
-    </tr><tr style="background:rgba(31,193,107,0.56)">
-      <td>30/04/2026</td>
-      <td>5.961.784,05</td>
-      <td>20.999,98</td>
-      <td>20.999,98</td>
-      <td>15.024,44</td>
-      <td>5.940.784,07</td>
-      <td>2.574.414,41</td>
-      <td>3.366.369,65</td>
+        <div class="fit"><table><thead><tr><th style="width:10%">Dia</th><th style="width:15%">Bruto</th><th style="width:12%">Refaturado</th><th style="width:11%">Setor</th><th style="width:12%">Substituição</th><th style="width:14%">Lucro real</th><th style="width:13%">Meta dia</th><th style="width:13%">Diferença</th></tr></thead><tbody id="diarioBody"><tr style="background:rgba(239,77,97,0.56)">
+      <td>01/01/2026</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>2.273.155,49</td>
+      <td>-2.273.155,49</td>
+    </tr><tr style="background:rgba(239,77,97,0.34434819998827454)">
+      <td>02/01/2026</td>
+      <td>1.196.591,40</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.167.166,84</td>
+      <td>2.273.155,49</td>
+      <td>-1.105.988,65</td>
+    </tr><tr style="background:rgba(239,77,97,0.28031178791311995)">
+      <td>03/01/2026</td>
+      <td>1.543.174,07</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.513.749,51</td>
+      <td>2.273.155,49</td>
+      <td>-759.405,98</td>
+    </tr><tr style="background:rgba(239,77,97,0.5405681752539603)">
+      <td>04/01/2026</td>
+      <td>134.594,94</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>105.170,38</td>
+      <td>2.273.155,49</td>
+      <td>-2.167.985,11</td>
+    </tr><tr style="background:rgba(239,77,97,0.25927078931067227)">
+      <td>05/01/2026</td>
+      <td>1.657.053,74</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.627.629,18</td>
+      <td>2.273.155,49</td>
+      <td>-645.526,31</td>
+    </tr><tr style="background:rgba(239,77,97,0.17579905832493012)">
+      <td>06/01/2026</td>
+      <td>2.108.825,70</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.079.401,14</td>
+      <td>2.273.155,49</td>
+      <td>-193.754,35</td>
+    </tr><tr style="background:rgba(239,77,97,0.23198091935353993)">
+      <td>07/01/2026</td>
+      <td>1.804.754,02</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.775.329,46</td>
+      <td>2.273.155,49</td>
+      <td>-497.826,03</td>
+    </tr><tr style="background:rgba(239,77,97,0.16419122975149716)">
+      <td>08/01/2026</td>
+      <td>2.171.650,46</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.142.225,90</td>
+      <td>2.273.155,49</td>
+      <td>-130.929,59</td>
+    </tr><tr style="background:rgba(31,193,107,0.1432211284391672)">
+      <td>09/01/2026</td>
+      <td>2.320.013,68</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.290.589,12</td>
+      <td>2.273.155,49</td>
+      <td>17.433,63</td>
+    </tr><tr style="background:rgba(239,77,97,0.324890923582781)">
+      <td>10/01/2026</td>
+      <td>1.301.899,53</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.272.474,97</td>
+      <td>2.273.155,49</td>
+      <td>-1.000.680,52</td>
+    </tr><tr style="background:rgba(239,77,97,0.5408024741408273)">
+      <td>11/01/2026</td>
+      <td>133.326,85</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>103.902,29</td>
+      <td>2.273.155,49</td>
+      <td>-2.169.253,20</td>
+    </tr><tr style="background:rgba(239,77,97,0.2183727378661105)">
+      <td>12/01/2026</td>
+      <td>1.878.405,24</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.848.980,68</td>
+      <td>2.273.155,49</td>
+      <td>-424.174,81</td>
+    </tr><tr style="background:rgba(31,193,107,0.27704711372678414)">
+      <td>13/01/2026</td>
+      <td>3.044.316,71</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.014.892,15</td>
+      <td>2.273.155,49</td>
+      <td>741.736,66</td>
+    </tr><tr style="background:rgba(31,193,107,0.3214481449937644)">
+      <td>14/01/2026</td>
+      <td>3.284.627,30</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.255.202,74</td>
+      <td>2.273.155,49</td>
+      <td>982.047,25</td>
+    </tr><tr style="background:rgba(31,193,107,0.40942058781549007)">
+      <td>15/01/2026</td>
+      <td>3.760.758,35</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.731.333,79</td>
+      <td>2.273.155,49</td>
+      <td>1.458.178,30</td>
+    </tr><tr style="background:rgba(31,193,107,0.31370771970835654)">
+      <td>16/01/2026</td>
+      <td>3.242.733,99</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.213.309,43</td>
+      <td>2.273.155,49</td>
+      <td>940.153,94</td>
+    </tr><tr style="background:rgba(239,77,97,0.23617895624964536)">
+      <td>17/01/2026</td>
+      <td>1.782.033,09</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>1.752.608,53</td>
+      <td>2.273.155,49</td>
+      <td>-520.546,96</td>
+    </tr><tr style="background:rgba(239,77,97,0.5308163536392873)">
+      <td>18/01/2026</td>
+      <td>187.374,48</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>157.949,92</td>
+      <td>2.273.155,49</td>
+      <td>-2.115.205,57</td>
+    </tr><tr style="background:rgba(31,193,107,0.1456465373627649)">
+      <td>19/01/2026</td>
+      <td>2.333.140,66</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.303.716,10</td>
+      <td>2.273.155,49</td>
+      <td>30.560,61</td>
+    </tr><tr style="background:rgba(31,193,107,0.22438232271380668)">
+      <td>20/01/2026</td>
+      <td>2.759.280,38</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.729.855,82</td>
+      <td>2.273.155,49</td>
+      <td>456.700,33</td>
+    </tr><tr style="background:rgba(31,193,107,0.3049433331433381)">
+      <td>21/01/2026</td>
+      <td>3.195.298,72</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.165.874,16</td>
+      <td>2.273.155,49</td>
+      <td>892.718,67</td>
+    </tr><tr style="background:rgba(31,193,107,0.21416579632790447)">
+      <td>22/01/2026</td>
+      <td>2.703.985,73</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.674.561,17</td>
+      <td>2.273.155,49</td>
+      <td>401.405,68</td>
+    </tr><tr style="background:rgba(31,193,107,0.22483810332647008)">
+      <td>23/01/2026</td>
+      <td>2.761.747,19</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.732.322,63</td>
+      <td>2.273.155,49</td>
+      <td>459.167,14</td>
+    </tr><tr style="background:rgba(31,193,107,0.22985037268997907)">
+      <td>24/01/2026</td>
+      <td>2.788.874,97</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.759.450,41</td>
+      <td>2.273.155,49</td>
+      <td>486.294,92</td>
+    </tr><tr style="background:rgba(239,77,97,0.4272451578851724)">
+      <td>25/01/2026</td>
+      <td>747.930,27</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>718.505,71</td>
+      <td>2.273.155,49</td>
+      <td>-1.554.649,78</td>
+    </tr><tr style="background:rgba(31,193,107,0.2269051102819283)">
+      <td>26/01/2026</td>
+      <td>2.772.934,40</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>2.743.509,84</td>
+      <td>2.273.155,49</td>
+      <td>470.354,35</td>
+    </tr><tr style="background:rgba(31,193,107,0.36364509386018573)">
+      <td>27/01/2026</td>
+      <td>3.513.008,79</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.483.584,23</td>
+      <td>2.273.155,49</td>
+      <td>1.210.428,74</td>
+    </tr><tr style="background:rgba(31,193,107,0.3006949477335851)">
+      <td>28/01/2026</td>
+      <td>3.172.305,29</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.142.880,73</td>
+      <td>2.273.155,49</td>
+      <td>869.725,24</td>
+    </tr><tr style="background:rgba(31,193,107,0.28440035062780944)">
+      <td>29/01/2026</td>
+      <td>3.084.114,45</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.054.689,89</td>
+      <td>2.273.155,49</td>
+      <td>781.534,40</td>
+    </tr><tr style="background:rgba(31,193,107,0.39299408129926167)">
+      <td>30/01/2026</td>
+      <td>3.671.853,58</td>
+      <td>29.424,56</td>
+      <td>29.424,56</td>
+      <td>11.064,53</td>
+      <td>3.642.429,02</td>
+      <td>2.273.155,49</td>
+      <td>1.369.273,53</td>
+    </tr><tr style="background:rgba(239,77,97,0.56)">
+      <td>31/01/2026</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>0,00</td>
+      <td>2.273.155,49</td>
+      <td>-2.273.155,49</td>
     </tr></tbody></table></div>
       </div>
     </section>
 
     <section id="graficos" class="page">
       <div class="charts-grid">
-        <div class="chart-card"><div class="chart-title">Comparativo diário</div><canvas id="comparativoChart" style="box-sizing: border-box; display: block; height: 286.2px; width: 808.3px;" width="727" height="257"></canvas></div>
-        <div class="chart-card"><div class="chart-title">Participação do mês</div><canvas id="pizzaChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 286.2px; width: 391px;" width="351" height="257"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Comparativo diário</div><canvas id="comparativoChart" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Participação do mês</div><canvas id="pizzaChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
       </div>
       <div class="mini-charts">
-        <div class="chart-card"><div class="chart-title">Lucro real</div><canvas id="totalChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 256.2px; width: 386.4px;" width="347" height="230"></canvas></div>
-        <div class="chart-card"><div class="chart-title">Internacional</div><canvas id="interChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 256.2px; width: 386.4px;" width="347" height="230"></canvas></div>
-        <div class="chart-card"><div class="chart-title">Nacional</div><canvas id="nacChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 256.2px; width: 386.4px;" width="347" height="230"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Lucro real</div><canvas id="totalChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Internacional</div><canvas id="interChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Nacional</div><canvas id="nacChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
       </div>
     </section>
 
@@ -428,15 +368,15 @@
           <div><div class="chart-title">Anual - bruto x lucro real</div><div class="sub">Linhas mensais do ano selecionado</div></div>
           <select id="annualYear" style="max-width:90px;padding:8px 10px;font-size:13px;border-radius:10px"><option value="2026">2026</option></select>
         </div>
-        <canvas id="annualMainChart" style="height: 322.9px; box-sizing: border-box; display: block; width: 1220.7px;" width="1098" height="290"></canvas>
+        <canvas id="annualMainChart" style="height: 0px; box-sizing: border-box; display: block; width: 0px;" width="0" height="0"></canvas>
       </div>
       <div class="annual-two">
-        <div class="chart-card"><div class="chart-title">Internacional x Nacional</div><canvas id="annualInterNacChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 256.2px; width: 590.2px;" width="531" height="230"></canvas></div>
-        <div class="chart-card"><div class="chart-title">% refaturado + substituto por mês</div><canvas id="annualPctChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 256.2px; width: 590.2px;" width="531" height="230"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Internacional x Nacional</div><canvas id="annualInterNacChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">% refaturado + substituto por mês</div><canvas id="annualPctChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
       </div>
       <div class="annual-two" style="margin-top:14px">
-        <div class="chart-card"><div class="chart-title">Bruto mensal</div><canvas id="annualBrutoChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 256.2px; width: 590.2px;" width="531" height="230"></canvas></div>
-        <div class="chart-card"><div class="chart-title">Lucro real mensal</div><canvas id="annualLiquidoChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 256.2px; width: 590.2px;" width="531" height="230"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Bruto mensal</div><canvas id="annualBrutoChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Lucro real mensal</div><canvas id="annualLiquidoChart" class="small-canvas" style="box-sizing: border-box; display: block; height: 0px; width: 0px;" width="0" height="0"></canvas></div>
       </div>
     </section>
 
@@ -473,7 +413,7 @@
         <div class="panel">
           <h2>Configuração interna</h2>
           <div class="sub">As credenciais da Supabase não aparecem na tela. Edite apenas no início do script do HTML. Cole URL e anonKey entre aspas simples e em uma linha só.</div>
-          <div class="meta-card"><div class="label">Meta consultada</div><div id="configMetaPreview" class="value sm">77.232.432,43</div><div class="help">Ao trocar o mês, tudo recalcula junto.</div></div>
+          <div class="meta-card"><div class="label">Meta consultada</div><div id="configMetaPreview" class="value sm">70.467.820,06</div><div class="help">Ao trocar o mês, tudo recalcula junto.</div></div>
           <div class="meta-card" style="margin-top:12px"><div class="label">Fonte do bruto</div><div class="value sm">Relatório → Supabase A</div><div class="help">O painel passa a ler a base sincronizada.</div></div>
           <div class="meta-card" style="margin-top:12px"><div class="label">Fonte dos descontos</div><div class="value sm">Supabase B</div><div class="help">Lê setor (debito) e substituto (frete_substituto) de refaturamento_importado.</div></div>
           <div class="meta-card" style="margin-top:12px"><div class="label">Tabelas esperadas</div><div class="help">A: faturamento_bruto / metas_faturamento<br>B: refaturamento_importado</div></div>
@@ -485,926 +425,24 @@
           <h2>Validação rápida</h2>
           <div class="sub">Confere se a leitura e os cálculos do mês filtrado estão coerentes.</div>
           <div class="cards" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-            <div class="mini-card"><div class="label">Bruto validado</div><div id="valBruto" class="value sm">0,00</div><div class="help">Soma do mês lido</div></div>
-            <div class="mini-card"><div class="label">Setor validado</div><div id="valSetor" class="value sm">0,00</div><div class="help">Soma do setor na B</div></div>
-            <div class="mini-card"><div class="label">Líquido validado</div><div id="valLiquido" class="value sm">0,00</div><div class="help">Bruto - setor</div></div>
-            <div class="mini-card"><div class="label">Status da validação</div><div id="valStatus" class="value warn">Sem bruto</div><div id="valHelp" class="help">O mês está cadastrado, mas sem valores de faturamento.</div></div>
+            <div class="mini-card"><div class="label">Bruto validado</div><div id="valBruto" class="value sm">65.056.607,98</div><div class="help">Soma do mês lido</div></div>
+            <div class="mini-card"><div class="label">Setor validado</div><div id="valSetor" class="value sm">853.312,28</div><div class="help">Soma do setor na B</div></div>
+            <div class="mini-card"><div class="label">Líquido validado</div><div id="valLiquido" class="value sm">64.203.295,70</div><div class="help">Bruto - setor</div></div>
+            <div class="mini-card"><div class="label">Status da validação</div><div id="valStatus" class="value good">OK</div><div id="valHelp" class="help">Leitura e cálculo do mês conferidos.</div></div>
           </div>
         </div>
 </section>
   </main>
 </div>
 
-<script>
-// 🔐 Acesso vindo do menu pai
-const MENU_PAI_URL = "https://menu-rho-olive.vercel.app/";
-const params = new URLSearchParams(window.location.search);
-const perfil = (params.get("perfil") || "").trim().toLowerCase();
-const usuario = params.get("usuario") || "";
-const usuarioRef = (params.get("usuarioRef") || "").trim();
 
-if (!perfil) {
-  alert("Acesso não autorizado. Entre pelo menu principal.");
-  window.location.href = MENU_PAI_URL;
-  throw new Error("Acesso bloqueado");
-}
 
-function aclNormUser(v){
-  return String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-}
-function aclRestritoPorUsuario(){ return perfil !== "admin" && !!usuarioRef; }
-function aclUserMatch(v){ return aclNormUser(v) === aclNormUser(usuarioRef); }
 
-if (window.Chart && window.ChartDataLabels) Chart.register(ChartDataLabels);
 
-function setText(id, value){
-  const el = document.getElementById(id);
-  if (el) el.textContent = value;
-}
-function setClass(id, value){
-  const el = document.getElementById(id);
-  if (el) el.className = value;
-}
 
-
-function openPage(pageId){
-  document.querySelectorAll('.navbtn').forEach(btn=>{
-    btn.classList.toggle('active', btn.dataset.page === pageId);
-  });
-
-  document.querySelectorAll('.page').forEach(page=>{
-    page.classList.toggle('active', page.id === pageId);
-  });
-
-  setTimeout(()=>{
-    try{
-      if(pageId === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
-      if(pageId === 'diario' && typeof renderDiario === 'function') renderDiario();
-      if(pageId === 'graficos' && typeof renderGraficos === 'function') renderGraficos();
-      if(pageId === 'anual' && typeof renderAnual === 'function') renderAnual();
-      if(pageId === 'config' && typeof updateMetaPreview === 'function') updateMetaPreview();
-    }catch(e){
-      console.warn('Falha ao renderizar aba:', e);
-    }
-  }, 80);
-}
-window.openPage = openPage;
-
-/* COLE AS CREDENCIAIS ENTRE ASPAS SIMPLES, EM UMA LINHA SÓ */
-const SUPABASE_A = {
-  url: 'https://rhjtyyrlctwetjhnaidu.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoanR5eXJsY3R3ZXRqaG5haWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzE2NzMsImV4cCI6MjA5MTgwNzY3M30.79U7lcPIG511u2_3ExG32VowakoWyWTfTniW9hHrhRE',
-  brutoTable: 'faturamento_bruto',
-  brutoDateCol: 'data',
-  brutoCol: 'total_bruto',
-  interCol: 'internacional',
-  nacCol: 'nacional',
-  metasTable: 'metas_faturamento',
-  metasMonthCol: 'mes',
-  metasValueCol: 'valor_meta'
-};
-
-const SUPABASE_B = {
-  url: 'https://bcchonskglushqbnwcni.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjY2hvbnNrZ2x1c2hxYm53Y25pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NDkxNDUsImV4cCI6MjA5MTMyNTE0NX0.M-yWHlHMFHLE9T5DlJ6nDzutYjRjavHEGvZCH9o2AXg',
-  table: 'refaturamento_importado',
-  refCol: 'debito',
-  substCol: 'frete_substituto',
-  tipoCol: 'tipo',
-  mesCol: 'mes',
-  anoCol: 'ano'
-};
-
-function hasSupabaseConfig(){
-  return !!(SUPABASE_A.url && SUPABASE_A.anonKey && SUPABASE_B.url && SUPABASE_B.anonKey);
-}
-
-const state = { brutoRows: [], refRows: [], metas: {}, charts: {} };
-
-function parseBR(v){
-  if(v==null||v==='') return 0;
-  if(typeof v==='number') return v;
-  let s=String(v).trim().replace(/\s/g,'');
-  if(s.includes('.')&&s.includes(',')) s=s.replace(/\./g,'').replace(',','.');
-  else if(s.includes(',')&&!s.includes('.')) s=s.replace(',','.');
-  return Number(s)||0;
-}
-function fmtMoney(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function fmtPct(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; }
-function shortNumber(v){
-  const n=Number(v||0);
-  if(Math.abs(n)>=1_000_000) return (n/1_000_000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mi';
-  if(Math.abs(n)>=1_000) return (n/1_000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mil';
-  return n.toLocaleString('pt-BR',{maximumFractionDigits:0});
-}
-function normalizeDate(raw){
-  if(!raw&&raw!==0) return null;
-  if(raw instanceof Date && !isNaN(raw)) return raw.toISOString().slice(0,10);
-  if(typeof raw==='number'){
-    const d=new Date(Math.round((raw-25569)*86400*1000));
-    if(!isNaN(d)) return d.toISOString().slice(0,10);
-  }
-  const s=String(raw).trim();
-  let m=s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
-  if(m) return `${m[3]}-${m[2]}-${m[1]}`;
-  m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if(m) return s;
-  const d=new Date(s);
-  if(!isNaN(d)) return d.toISOString().slice(0,10);
-  return null;
-}
-function normalizeMonthDate(raw){
-  const s = normalizeDate(raw);
-  return s ? s.slice(0,7) + '-01' : null;
-}
-function monthKeyFromDate(dateStr){ return dateStr?.slice(0,7); }
-function daysInMonth(monthKey){
-  const [y,m]=monthKey.split('-').map(Number);
-  return new Date(y,m,0).getDate();
-}
-const monthNames=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-function prettyMonth(monthKey){
-  if(!monthKey) return '-';
-  const [y,m]=monthKey.split('-').map(Number);
-  return `${monthNames[m-1]} de ${y}`;
-}
-
-function saveLocalMetas(){ localStorage.setItem('painel_bi_metas', JSON.stringify(state.metas)); }
-function loadLocal(){
-  try{ state.metas = JSON.parse(localStorage.getItem('painel_bi_metas') || '{}'); }
-  catch{ state.metas = {}; }
-}
-
-function allMonthKeys(){
-  const set=new Set();
-  state.brutoRows.forEach(r=>set.add(monthKeyFromDate(r.date)));
-  state.refRows.forEach(r=>set.add(r.monthKey));
-  Object.keys(state.metas).forEach(k=>set.add(k));
-  return Array.from(set).filter(Boolean).sort();
-}
-function allYears(){ return Array.from(new Set(allMonthKeys().map(k=>k.slice(0,4)))).sort(); }
-function setSelectOptions(select, values, formatter){
-  const current=select.value;
-  select.innerHTML='';
-  values.forEach(v=>{
-    const opt=document.createElement('option');
-    opt.value=v;
-    opt.textContent=formatter ? formatter(v) : v;
-    select.appendChild(opt);
-  });
-  if(values.includes(current)) select.value=current;
-  else if(values.length) select.value=values[values.length-1];
-}
-function intensityColor(diff, metaDia){
-  if(!metaDia) return 'rgba(255,255,255,.03)';
-  const ratio=Math.min(Math.abs(diff)/metaDia,1);
-  return diff>=0 ? `rgba(31,193,107,${0.14+ratio*0.42})` : `rgba(239,77,97,${0.14+ratio*0.42})`;
-}
-
-function detectHeader(obj, candidates){
-  const keys=Object.keys(obj||{});
-  return keys.find(k=>candidates.some(c=>k.toLowerCase().includes(c)));
-}
-
-
-function parseReportLikeGrid(grid){
-  const imported=[];
-  let mode='main';
-  let valorCol = -1;
-
-  for(const row of grid){
-    const normalized = row.map(v => String(v).trim());
-    const joined = normalized.join(' ').trim();
-    if(!joined) continue;
-
-    if(/FRETE INTERNACIONAL/i.test(joined)){ mode='inter'; continue; }
-    if(/FRETE NACIONAL/i.test(joined)){ mode='nac'; continue; }
-
-    const vrIdx = normalized.findIndex(v => /valor realizado/i.test(v));
-    if(vrIdx > 0 && normalized.some(v => /^data$/i.test(v))){
-      valorCol = vrIdx - 1;
-      continue;
-    }
-
-    const dateIdx = normalized.findIndex(v => /^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(v));
-    if(dateIdx === -1) continue;
-
-    const date = normalizeDate(normalized[dateIdx]);
-    if(!date) continue;
-
-    let found = imported.find(r=>r.date===date);
-    if(!found){
-      found = {date, bruto:0, inter:0, nac:0, source:'Excel'};
-      imported.push(found);
-    }
-
-    let valor = 0;
-
-    if(valorCol >= 0 && valorCol < row.length){
-      valor = parseBR(row[valorCol]);
-    }
-
-    if(!valor){
-      const nums = row
-        .slice(dateIdx + 1)
-        .map(v => parseBR(v))
-        .filter(v => Number.isFinite(v) && v > 0);
-      if(nums.length){
-        valor = Math.max(...nums.slice(0, 6));
-      }
-    }
-
-    if(mode === 'main') found.bruto = valor;
-    else if(mode === 'inter') found.inter = valor;
-    else if(mode === 'nac') found.nac = valor;
-  }
-
-  return imported;
-}
-
-
-function parseExcelToRows(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=(e)=>{
-      try{
-        const wb=XLSX.read(e.target.result,{type:'array'});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const grid=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        let imported=parseReportLikeGrid(grid);
-
-        if(!imported.length){
-          const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-          if(rows.length){
-            const sample=rows[0];
-            const dateKey=detectHeader(sample,['data','date']);
-            const totalKey=detectHeader(sample,['valor realizado','realizado','total','bruto']);
-            const interKey=detectHeader(sample,['internacional','inter']);
-            const nacKey=detectHeader(sample,['nacional','nac']);
-            imported=rows.map(r=>{
-              const date=normalizeDate(r[dateKey]);
-              if(!date) return null;
-              return {date, bruto:parseBR(r[totalKey]), inter:parseBR(r[interKey]), nac:parseBR(r[nacKey]), source:'Excel'};
-            }).filter(Boolean);
-          }
-        }
-        resolve(imported.sort((a,b)=>a.date.localeCompare(b.date)));
-      }catch(err){ reject(err); }
-    };
-    reader.onerror=reject;
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-async function fetchRows(url, key, table, cols){
-  const endpoint =
-    `${url}/rest/v1/${table}` +
-    `?select=${encodeURIComponent(cols.join(','))}` +
-    `&limit=5000`;
-
-  const res = await fetch(endpoint, {
-    method: 'GET',
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    },
-    cache: 'no-store'
-  });
-
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Erro ${res.status} em ${table}: ${txt}`);
-  }
-  return await res.json();
-}
-
-async function loadBrutoFromSupabaseA(){
-  if(!SUPABASE_A.url || !SUPABASE_A.anonKey) throw new Error('Preencha SUPABASE_A no início do HTML.');
-  const rows=await fetchRows(SUPABASE_A.url,SUPABASE_A.anonKey,SUPABASE_A.brutoTable,[SUPABASE_A.brutoDateCol,SUPABASE_A.brutoCol,SUPABASE_A.interCol,SUPABASE_A.nacCol]);
-  state.brutoRows = Object.values(
-    rows.map(r=>({
-      date: normalizeDate(r[SUPABASE_A.brutoDateCol]),
-      bruto: parseBR(r[SUPABASE_A.brutoCol]),
-      inter: parseBR(r[SUPABASE_A.interCol]),
-      nac: parseBR(r[SUPABASE_A.nacCol]),
-      source: 'Supabase A'
-    })).filter(r=>r.date).reduce((acc, r) => {
-      acc[r.date] = r;
-      return acc;
-    }, {})
-  );
-}
-
-async function loadRefaturadoFromSupabaseB(){
-  if(!SUPABASE_B.url || !SUPABASE_B.anonKey) throw new Error('Preencha SUPABASE_B no início do HTML.');
-  const cols=[SUPABASE_B.mesCol, SUPABASE_B.anoCol, SUPABASE_B.tipoCol, SUPABASE_B.refCol, SUPABASE_B.substCol];
-  const rows = await fetchRows(SUPABASE_B.url,SUPABASE_B.anonKey,SUPABASE_B.table,cols);
-  state.refRows = rows.map(r => {
-    const tipo = String(r[SUPABASE_B.tipoCol] || '').toLowerCase();
-    return {
-      monthKey: `${String(r[SUPABASE_B.anoCol]).padStart(4,'0')}-${String(r[SUPABASE_B.mesCol]).padStart(2,'0')}`,
-      setorValor: tipo.includes('setor') ? parseBR(r[SUPABASE_B.refCol]) : 0,
-      substValor: parseBR(r[SUPABASE_B.substCol])
-    };
-  }).filter(r => r.monthKey);
-}
-
-async function loadMetasFromSupabaseA(){
-  if(!SUPABASE_A.url || !SUPABASE_A.anonKey) return;
-  const rows=await fetchRows(SUPABASE_A.url,SUPABASE_A.anonKey,SUPABASE_A.metasTable,[SUPABASE_A.metasMonthCol,SUPABASE_A.metasValueCol]);
-  state.metas={};
-  rows.forEach(r=>{
-    const d = normalizeMonthDate(r[SUPABASE_A.metasMonthCol]);
-    if (!d) return;
-    state.metas[d.slice(0,7)] = parseBR(r[SUPABASE_A.metasValueCol]);
-  });
-  saveLocalMetas();
-}
-
-async function refreshAllFromSupabases(showAlert=true){
-  try{
-    state.brutoRows = [];
-    state.refRows = [];
-    await Promise.all([
-      loadBrutoFromSupabaseA(),
-      loadRefaturadoFromSupabaseB(),
-      loadMetasFromSupabaseA().catch(()=>{})
-    ]);
-    renderAll();
-    if (showAlert) alert('Leitura atualizada de Supabase A + B.');
-  }catch(err){
-    if (showAlert) alert(`Falha ao atualizar dados: ${err.message}`);
-    else console.error(err);
-  }
-}
-
-async function upsertBrutoToSupabaseA(rows){
-  if(!SUPABASE_A.url || !SUPABASE_A.anonKey) throw new Error('Preencha SUPABASE_A no início do HTML.');
-  const payload = rows.map(r=>({
-    [SUPABASE_A.brutoDateCol]: r.date,
-    [SUPABASE_A.brutoCol]: Number(r.bruto||0),
-    [SUPABASE_A.interCol]: Number(r.inter||0),
-    [SUPABASE_A.nacCol]: Number(r.nac||0),
-  }));
-  const res=await fetch(`${SUPABASE_A.url}/rest/v1/${SUPABASE_A.brutoTable}?on_conflict=${encodeURIComponent(SUPABASE_A.brutoDateCol)}`,{
-    method:'POST',
-    headers:{
-      apikey:SUPABASE_A.anonKey,
-      Authorization:`Bearer ${SUPABASE_A.anonKey}`,
-      'Content-Type':'application/json',
-      Prefer:'resolution=merge-duplicates,return=representation'
-    },
-    body:JSON.stringify(payload)
-  });
-  if(!res.ok) throw new Error(`Falha ao importar bruto: ${res.status} ${await res.text()}`);
-}
-
-async function saveMetaToSupabase(monthKey, value){
-  if(!SUPABASE_A.url || !SUPABASE_A.anonKey){
-    state.metas[monthKey] = Number(value||0);
-    saveLocalMetas();
-    return;
-  }
-  const payload=[{
-    [SUPABASE_A.metasMonthCol]: `${monthKey}-01`,
-    [SUPABASE_A.metasValueCol]: Number(value||0)
-  }];
-  const res=await fetch(`${SUPABASE_A.url}/rest/v1/${SUPABASE_A.metasTable}?on_conflict=${encodeURIComponent(SUPABASE_A.metasMonthCol)}`,{
-    method:'POST',
-    headers:{
-      apikey:SUPABASE_A.anonKey,
-      Authorization:`Bearer ${SUPABASE_A.anonKey}`,
-      'Content-Type':'application/json',
-      Prefer:'resolution=merge-duplicates,return=representation'
-    },
-    body:JSON.stringify(payload)
-  });
-  if(!res.ok) throw new Error(`Falha ao salvar meta: ${res.status} ${await res.text()}`);
-}
-
-async function deleteMetaFromSupabase(monthKey){
-  if(!SUPABASE_A.url || !SUPABASE_A.anonKey){
-    delete state.metas[monthKey];
-    saveLocalMetas();
-    return;
-  }
-  const date=`${monthKey}-01`;
-  const res=await fetch(`${SUPABASE_A.url}/rest/v1/${SUPABASE_A.metasTable}?${SUPABASE_A.metasMonthCol}=eq.${date}`,{
-    method:'DELETE',
-    headers:{apikey:SUPABASE_A.anonKey, Authorization:`Bearer ${SUPABASE_A.anonKey}`}
-  });
-  if(!res.ok) throw new Error(`Falha ao excluir meta: ${res.status} ${await res.text()}`);
-}
-
-function renderMetaList(){
-  const keys = Object.keys(state.metas).sort();
-  metaList.innerHTML = keys.length
-    ? keys.map(k=>`<div class="meta-pill"><span>${prettyMonth(k)}</span><span>${fmtMoney(state.metas[k])}</span></div>`).join('')
-    : '<div class="hint">Nenhuma meta cadastrada.</div>';
-}
-
-function updateMetaPreview(){
-  const monthKey = dashboardMonth.value || allMonthKeys().slice(-1)[0] || metaMonthInput.value;
-  configMetaPreview.textContent = fmtMoney(state.metas[monthKey] || 0);
-}
-
-function getMonthDataset(monthKey){
-  const dim=daysInMonth(monthKey);
-  const map=new Map();
-  for(let d=1; d<=dim; d++){
-    const date=`${monthKey}-${String(d).padStart(2,'0')}`;
-    map.set(date,{date, bruto:0, inter:0, nac:0, setor:0, substituicao:0, liquido:0});
-  }
-
-  state.brutoRows.filter(r=>monthKeyFromDate(r.date)===monthKey).forEach(r=>{
-    const row=map.get(r.date);
-    if(!row) return;
-    row.bruto += Number(r.bruto||0);
-    row.inter += Number(r.inter||0);
-    row.nac += Number(r.nac||0);
-  });
-
-  const monthB = state.refRows.filter(r=>r.monthKey===monthKey);
-  const setorMes = monthB.reduce((s,r)=>s + Number(r.setorValor||0),0);
-  const substMes = monthB.reduce((s,r)=>s + Number(r.substValor||0),0);
-
-  const diasComBruto = Array.from(map.values()).filter(r=>r.bruto>0).length || dim;
-  const setorDia = setorMes / diasComBruto;
-  const substDia = substMes / diasComBruto;
-
-  Array.from(map.values()).forEach(r=>{
-    if(r.bruto>0){
-      r.setor = setorDia;
-      r.substituicao = substDia;
-    }
-    r.liquido = r.bruto - r.setor;
-  });
-
-  return Array.from(map.values());
-}
-
-function aggregateYear(year){
-  const months=Array.from({length:12},(_,i)=>`${year}-${String(i+1).padStart(2,'0')}`);
-  return months.map(monthKey=>{
-    const rows=getMonthDataset(monthKey);
-    const bruto=rows.reduce((s,r)=>s+r.bruto,0);
-    const setor=rows.reduce((s,r)=>s+r.setor,0);
-    const substituicao=rows.reduce((s,r)=>s+r.substituicao,0);
-    const liquido=rows.reduce((s,r)=>s+r.liquido,0);
-    const inter=rows.reduce((s,r)=>s+r.inter,0);
-    const nac=rows.reduce((s,r)=>s+r.nac,0);
-    return {monthKey, bruto, setor, substituicao, liquido, inter, nac, refPct: bruto ? ((setor + substituicao)/bruto)*100 : 0};
-  });
-}
-
-function renderEmpty(){
-  const ids = ['cardBruto','cardRef','cardSubst','cardLiquido','cardMeta','cardFalta','cardAtingido','cardErroPct','cardInter','cardNac','cardMediaDia','cardPrecisaDia','cardMetaDia','cardPartInter','cardPartNac','cardMes','cardBestDay','cardBestVal','cardWorstDay','cardWorstVal'];
-  ids.forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el) return;
-    if(id.toLowerCase().includes('pct') || id==='cardAtingido') el.textContent='0,0%';
-    else if(id==='cardMes') el.textContent='-';
-    else if(id==='cardBestDay' || id==='cardWorstDay') el.textContent='-';
-    else el.textContent='0,00';
-  });
-  setText('dashSubtitle','Sem dados carregados.');
-  setText('cardInterPct','0,0% da receita');
-  setText('cardNacPct','0,0% da receita');
-  setText('cardDaysInMonth','0 dias no mês');
-  setText('cardStatus','Sem dados');
-  setClass('cardStatus','pill bad');
-  const body=document.getElementById('diarioBody');
-  if(body) body.innerHTML='';
-  Object.values(state.charts||{}).forEach(ch=>{ try{ch.destroy()}catch(e){} });
-  state.charts={};
-}
-
-function renderDashboard(){
-  const monthKey=dashboardMonth.value || allMonthKeys().slice(-1)[0];
-  const rows=getMonthDataset(monthKey);
-  const bruto=rows.reduce((s,r)=>s+r.bruto,0);
-  const setor=rows.reduce((s,r)=>s+r.setor,0);
-  const substituicao=rows.reduce((s,r)=>s+r.substituicao,0);
-  const valorLiquido=rows.reduce((s,r)=>s+r.liquido,0);
-  const inter=rows.reduce((s,r)=>s+r.inter,0);
-  const nac=rows.reduce((s,r)=>s+r.nac,0);
-  const meta=state.metas[monthKey]||0;
-  const dim=daysInMonth(monthKey);
-  const metaDia=dim ? (meta/dim) : 0;
-  const falta=meta-valorLiquido;
-  const atingido=meta ? (valorLiquido/meta)*100 : 0;
-  const interPct=bruto ? (inter/bruto)*100 : 0;
-  const nacPct=bruto ? (nac/bruto)*100 : 0;
-  const refPct=bruto ? ((setor + substituicao)/bruto)*100 : 0;
-  const mediaDia=dim ? (valorLiquido/dim) : 0;
-  const precisaDia=meta ? Math.max(0,falta/dim) : 0;
-  const populated=rows.filter(r=>r.bruto>0);
-
-  setText('cardBruto', fmtMoney(bruto));
-  setText('cardRef', fmtMoney(setor));
-  setText('cardSubst', fmtMoney(substituicao));
-  setText('cardLiquido', fmtMoney(valorLiquido));
-  setText('cardMeta', fmtMoney(meta));
-
-  const faltaDisplay = falta < 0 ? Math.abs(falta) : falta;
-  setText('cardFalta', fmtMoney(faltaDisplay));
-  setClass('cardFalta', `value ${falta>0?'bad':'good'} sm`);
-
-  setText('cardAtingido', fmtPct(atingido));
-  if(atingido < 80) setClass('cardAtingido','value bad');
-  else if(atingido < 100) setClass('cardAtingido','value warn');
-  else setClass('cardAtingido','value good');
-
-  setText('cardInter', fmtMoney(inter));
-  setText('cardNac', fmtMoney(nac));
-  setText('cardInterPct', `${fmtPct(interPct)} da receita`);
-  setText('cardNacPct', `${fmtPct(nacPct)} da receita`);
-  setText('cardMediaDia', fmtMoney(mediaDia));
-  setText('cardPrecisaDia', fmtMoney(precisaDia));
-  setText('cardMetaDia', fmtMoney(metaDia));
-  setText('cardDaysInMonth', `${dim} dias no mês`);
-  setText('cardErroPct', fmtPct(refPct));
-  setText('cardPartInter', fmtPct(interPct));
-  setText('cardPartNac', fmtPct(nacPct));
-  setText('cardMes', prettyMonth(monthKey));
-
-  const baseRows = populated.length ? populated : rows;
-  let best=baseRows[0], worst=baseRows[0];
-  baseRows.forEach(r=>{ if(r.liquido>best.liquido) best=r; if(r.liquido<worst.liquido) worst=r; });
-  setText('cardBestDay', best?best.date.split('-').reverse().join('/'): '-');
-  setText('cardBestVal', best?fmtMoney(best.liquido):'0,00');
-  setText('cardWorstDay', worst?worst.date.split('-').reverse().join('/'): '-');
-  setText('cardWorstVal', worst?fmtMoney(worst.liquido):'0,00');
-
-  setText('dashSubtitle', `Período com ${populated.length} dia(s) carregado(s). Último lançamento: ${populated.length ? populated[populated.length-1].date.split('-').reverse().join('/') : '-'}.`);
-
-  if(!meta){ setText('cardStatus','Meta não definida'); setClass('cardStatus','pill bad'); }
-  else if(valorLiquido>=meta){ setText('cardStatus','Meta batida'); setClass('cardStatus','pill good'); }
-  else { setText('cardStatus','Abaixo da meta'); setClass('cardStatus','pill bad'); }
-
-  if(diarioMonth.value!==monthKey) diarioMonth.value=monthKey;
-}
-
-function renderDiario(){
-  const monthKey=diarioMonth.value || allMonthKeys().slice(-1)[0];
-  const rows=getMonthDataset(monthKey);
-  const meta=state.metas[monthKey]||0;
-  const metaDia=meta/daysInMonth(monthKey);
-
-  if(!window.diarioBody) return;
-  diarioBody.innerHTML = rows.map((r,i)=>{
-    const valorLiquidoDia = r.bruto - r.setor;
-    const diff=valorLiquidoDia-metaDia;
-    return `<tr style="background:${intensityColor(diff, metaDia)}">
-      <td>${String(i+1).padStart(2,'0')}/${monthKey.slice(5,7)}/${monthKey.slice(0,4)}</td>
-      <td>${fmtMoney(r.bruto)}</td>
-      <td>${fmtMoney(r.setor)}</td>
-      <td>${fmtMoney(r.setor)}</td>
-      <td>${fmtMoney(r.substituicao)}</td>
-      <td>${fmtMoney(valorLiquidoDia)}</td>
-      <td>${fmtMoney(metaDia)}</td>
-      <td>${fmtMoney(diff)}</td>
-    </tr>`;
-  }).join('');
-
-  if(dashboardMonth.value!==monthKey){
-    dashboardMonth.value=monthKey;
-    renderDashboard();
-    renderGraficos();
-    updateMetaPreview();
-  }
-}
-
-function destroyChart(key){ if(state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; } }
-
-function chartOpts(currency=false, datalabels=false, percentAxis=false){
-  return {
-    responsive:true,
-    maintainAspectRatio:false,
-    interaction:{mode:'index',intersect:false},
-    plugins:{
-      legend:{labels:{color:'#eef4ff'}},
-      datalabels:datalabels ? {
-        color:'#fff',
-        formatter:(v)=> currency ? shortNumber(v) : `${Number(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%`,
-        anchor:'end', align:'top', offset:2, clamp:true, font:{size:10,weight:'700'}
-      } : {display:false}
-    },
-    scales:{
-      x:{ticks:{color:'#d9e4ff'},grid:{color:'rgba(255,255,255,.06)'}},
-      y:{ticks:{color:'#d9e4ff', callback:(v)=>percentAxis?`${v}%`:shortNumber(v)}, grid:{color:'rgba(255,255,255,.06)'}}
-    }
-  };
-}
-
-function renderGraficos(){
-  const monthKey=dashboardMonth.value || allMonthKeys().slice(-1)[0];
-  const rows=getMonthDataset(monthKey);
-  const labels=rows.map((_,i)=>String(i+1));
-  const total=rows.map(r=>r.liquido);
-  const inter=rows.map(r=>r.inter);
-  const nac=rows.map(r=>r.nac);
-
-  destroyChart('comparativo');
-  state.charts.comparativo=new Chart(comparativoChart,{
-    type:'line',
-    data:{labels,datasets:[
-      {label:'Lucro real',data:total,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.3}
-    ]},
-    options:chartOpts(true,false,false)
-  });
-
-  destroyChart('pizza');
-  const interSum=inter.reduce((s,v)=>s+v,0), nacSum=nac.reduce((s,v)=>s+v,0);
-  state.charts.pizza=new Chart(pizzaChart,{
-    type:'pie',
-    data:{labels:['Internacional','Nacional'],datasets:[{data:[interSum,nacSum],backgroundColor:['#35b9ff','#ff5f96'],borderColor:'#1c3165',borderWidth:2}]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{labels:{color:'#eef4ff'}},
-        datalabels:{
-          color:'#fff',
-          formatter:(v,ctx)=>{ const sum=ctx.chart.data.datasets[0].data.reduce((s,n)=>s+n,0); const pct=sum?(v/sum)*100:0; return `${fmtPct(pct)}\n${shortNumber(v)}`; },
-          font:{size:11,weight:'700'}
-        }
-      }
-    }
-  });
-
-  [
-    ['total','totalChart','Lucro real','#35b9ff',total],
-    ['inter','interChart','Internacional','#ff5f96',inter],
-    ['nac','nacChart','Nacional','#ffb23e',nac]
-  ].forEach(([key,id,label,color,data])=>{
-    destroyChart(key);
-    state.charts[key]=new Chart(document.getElementById(id),{
-      type:'bar',
-      data:{labels,datasets:[{label,data,backgroundColor:color}]},
-      options:chartOpts(true,false,false)
-    });
-  });
-}
-
-function renderAnual(){
-  const year=annualYear.value || allYears().slice(-1)[0];
-  const agg=aggregateYear(year);
-  const labels=agg.map(r=>r.monthKey.slice(5,7));
-  const bruto=agg.map(r=>r.bruto);
-  const liquido=agg.map(r=>r.liquido);
-  const inter=agg.map(r=>r.inter);
-  const nac=agg.map(r=>r.nac);
-  const pct=agg.map(r=>r.refPct);
-
-  destroyChart('annualMain');
-  state.charts.annualMain=new Chart(annualMainChart,{
-    type:'line',
-    data:{labels,datasets:[
-      {label:'Bruto',data:bruto,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Lucro real',data:liquido,borderColor:'#1fc16b',backgroundColor:'transparent',borderWidth:3,tension:.3}
-    ]},
-    options:chartOpts(true,false,false)
-  });
-
-  destroyChart('annualPct');
-  state.charts.annualPct=new Chart(annualPctChart,{
-    type:'bar',
-    data:{labels,datasets:[{label:'% refaturado + substituto',data:pct,backgroundColor:'#f2c14f'}]},
-    options:chartOpts(false,true,true)
-  });
-
-  destroyChart('annualInterNac');
-  state.charts.annualInterNac=new Chart(annualInterNacChart,{
-    type:'line',
-    data:{labels,datasets:[
-      {label:'Internacional',data:inter,borderColor:'#ff5f96',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Nacional',data:nac,borderColor:'#ffb23e',backgroundColor:'transparent',borderWidth:3,tension:.3}
-    ]},
-    options:chartOpts(true,false,false)
-  });
-
-  destroyChart('annualBruto');
-  state.charts.annualBruto=new Chart(annualBrutoChart,{
-    type:'bar',
-    data:{labels,datasets:[{label:'Bruto',data:bruto,backgroundColor:'#35b9ff'}]},
-    options:chartOpts(true,false,false)
-  });
-
-  destroyChart('annualLiquido');
-  state.charts.annualLiquido=new Chart(annualLiquidoChart,{
-    type:'bar',
-    data:{labels,datasets:[{label:'Lucro real',data:liquido,backgroundColor:'#1fc16b'}]},
-    options:chartOpts(true,false,false)
-  });
-}
-
-
-function renderValidation(){
-  const monthKey = dashboardMonth.value || allMonthKeys().slice(-1)[0];
-  if(!monthKey){
-    setText('valBruto','0,00');
-    setText('valSetor','0,00');
-    setText('valLiquido','0,00');
-    setText('valStatus','Sem dados');
-    setClass('valStatus','value bad');
-    setText('valHelp','Nenhum mês encontrado');
-    return;
-  }
-
-  const rows = getMonthDataset(monthKey);
-  const bruto = rows.reduce((s,r)=>s+r.bruto,0);
-  const setor = rows.reduce((s,r)=>s+r.setor,0);
-  const liquido = rows.reduce((s,r)=>s+r.liquido,0);
-  const recalculado = bruto - setor;
-  const diff = Math.abs(liquido - recalculado);
-
-  setText('valBruto', fmtMoney(bruto));
-  setText('valSetor', fmtMoney(setor));
-  setText('valLiquido', fmtMoney(liquido));
-
-  if(bruto === 0){
-    setText('valStatus','Sem bruto');
-    setClass('valStatus','value warn');
-    setText('valHelp','O mês está cadastrado, mas sem valores de faturamento.');
-  } else if(diff <= 0.01){
-    setText('valStatus','OK');
-    setClass('valStatus','value good');
-    setText('valHelp','Leitura e cálculo do mês conferidos.');
-  } else {
-    setText('valStatus','Divergência');
-    setClass('valStatus','value bad');
-    setText('valHelp',`Diferença encontrada: ${fmtMoney(diff)}`);
-  }
-}
-
-function renderAll(){
-  const months=allMonthKeys();
-  renderMetaList();
-  if(!months.length){
-    dashboardMonth.innerHTML='';
-    diarioMonth.innerHTML='';
-    annualYear.innerHTML='';
-    renderEmpty();
-    renderValidation();
-    updateMetaPreview();
-    return;
-  }
-  setSelectOptions(dashboardMonth, months, prettyMonth);
-  setSelectOptions(diarioMonth, months, prettyMonth);
-  setSelectOptions(annualYear, allYears());
-  renderDashboard();
-  renderDiario();
-  renderGraficos();
-  renderAnual();
-  renderValidation();
-  updateMetaPreview();
-}
-
-function loadExample(){
-  state.brutoRows=[
-    {date:'2026-03-25', bruto:2927677.63, inter:1718780.38, nac:1037769.47, source:'Exemplo'},
-    {date:'2026-03-26', bruto:3138487.91, inter:1497027.47, nac:1193741.67, source:'Exemplo'},
-    {date:'2026-03-27', bruto:3904473.61, inter:2646197.81, nac:1107602.23, source:'Exemplo'},
-    {date:'2026-03-28', bruto:1782582.11, inter:998743.50, nac:744351.26, source:'Exemplo'},
-    {date:'2026-03-29', bruto:550552.79, inter:82093.03, nac:281462.83, source:'Exemplo'},
-    {date:'2026-03-30', bruto:2357596.88, inter:1260349.24, nac:956220.34, source:'Exemplo'},
-    {date:'2026-03-31', bruto:4462153.46, inter:2165232.82, nac:1167474.23, source:'Exemplo'}
-  ];
-  state.refRows=[
-    {monthKey:'2026-03', setorValor:894217.11, substValor:283322.10}
-  ];
-  renderAll();
-}
-
-
-
-function aplicarPermissoesFaturamento(){
-  const permissoesFaturamento = {
-    admin: ["dashboard", "diario", "graficos", "anual", "config", "registros", "conciliacao", "cadastro"],
-    operacional: ["dashboard", "diario", "graficos", "anual", "registros", "conciliacao", "cadastro"],
-    consulta: ["dashboard", "diario", "graficos", "anual"]
-  };
-  const liberadas = permissoesFaturamento[perfil] || permissoesFaturamento.consulta;
-  document.querySelectorAll('[data-page]').forEach(btn => {
-    const page = btn.getAttribute('data-page');
-    if(!liberadas.includes(page)) btn.style.display = 'none';
-  });
-  const activePage = document.querySelector('.page.active');
-  if(activePage && !liberadas.includes(activePage.id)){
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('[data-page]').forEach(b => b.classList.remove('active'));
-    const fallback = liberadas[0] || 'dashboard';
-    document.getElementById(fallback)?.classList.add('active');
-    document.querySelector(`[data-page="${fallback}"]`)?.classList.add('active');
-  }
-}
-aplicarPermissoesFaturamento();
-
-
-if(window.dashboardMonth) dashboardMonth.addEventListener('change',()=>{ renderDashboard(); renderDiario(); renderGraficos(); updateMetaPreview(); });
-if(window.diarioMonth) diarioMonth.addEventListener('change',()=>{ renderDiario(); dashboardMonth.value=diarioMonth.value; renderDashboard(); renderGraficos(); updateMetaPreview(); });
-if(window.annualYear) annualYear.addEventListener('change',renderAnual);
-
-if(window.excelInput) excelInput.addEventListener('change', async e=>{
-  const file = e.target.files[0];
-  if (!file) return;
-  try{
-    const rows = await parseExcelToRows(file);
-    state.brutoRows = rows;
-    renderAll();
-    alert(`Excel lido com sucesso: ${rows.length} linha(s). Clique em "Salvar" para gravar na base.`);
-  }catch(err){
-    alert(`Falha ao ler Excel: ${err.message}`);
-  }
-});
-
-if(window.importToSupabaseBtn) importToSupabaseBtn.addEventListener('click', async ()=>{
-  const file = excelInput.files[0];
-  if (!file){ alert('Selecione o Excel primeiro.'); return; }
-  try{
-    const rows = await parseExcelToRows(file);
-    await upsertBrutoToSupabaseA(rows);
-    await refreshAllFromSupabases(false);
-    renderAll();
-    alert(`Importação concluída. ${rows.length} linha(s) enviadas para a Supabase A com atualização por data.`);
-  }catch(err){
-    alert(err.message);
-  }
-});
-
-if(window.refreshBtn) refreshBtn.addEventListener('click', ()=>refreshAllFromSupabases(true));
-if(window.refreshMetasBtn) refreshMetasBtn.addEventListener('click', async ()=>{
-  try{
-    await loadMetasFromSupabaseA();
-    renderAll();
-    alert('Metas atualizadas.');
-  }catch(err){ alert(err.message); }
-});
-
-if(window.saveMetaBtn) saveMetaBtn.addEventListener('click', async ()=>{
-  if(!metaMonthInput.value) return alert('Selecione um mês.');
-  const value = parseBR(metaValueInput.value);
-  try{
-    await saveMetaToSupabase(metaMonthInput.value, value);
-    state.metas[metaMonthInput.value] = value;
-    saveLocalMetas();
-    renderAll();
-    alert('Meta salva.');
-  }catch(err){ alert(err.message); }
-});
-
-if(window.deleteMetaBtn) deleteMetaBtn.addEventListener('click', async ()=>{
-  if(!metaMonthInput.value) return alert('Selecione um mês.');
-  try{
-    await deleteMetaFromSupabase(metaMonthInput.value);
-    delete state.metas[metaMonthInput.value];
-    saveLocalMetas();
-    renderAll();
-    alert('Meta excluída.');
-  }catch(err){ alert(err.message); }
-});
-
-if(window.loadExampleBtn) loadExampleBtn.addEventListener('click', loadExample);
-if(window.clearImportedBtn) clearImportedBtn.addEventListener('click', ()=>{
-  if(!confirm('Limpar dados carregados da tela?')) return;
-  state.brutoRows=[];
-  state.refRows=[];
-  renderAll();
-});
-if(window.metaMonthInput) metaMonthInput.addEventListener('change', ()=>{
-  metaValueInput.value = state.metas[metaMonthInput.value] || '';
-  updateMetaPreview();
-});
-
-
-document.querySelectorAll('.navbtn').forEach(btn=>{
-  btn.addEventListener('click', (e)=>{
-    e.preventDefault();
-    openPage(btn.dataset.page);
-  });
-});
-
-loadLocal();
-metaMonthInput.value = new Date().toISOString().slice(0,7);
-metaValueInput.value = state.metas[metaMonthInput.value] || '';
-renderAll();
-
-window.addEventListener('load', async () => {
-  if(!hasSupabaseConfig()){
-    console.warn('Preencha SUPABASE_A e SUPABASE_B no início do HTML antes de sincronizar.');
-    return;
-  }
-  try{
-    await refreshAllFromSupabases(false);
-  }catch(err){
-    console.error(err);
-  }
-});
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script defer src="js/app.js"></script>
 
 </body></html>
