@@ -913,223 +913,8 @@ window.addEventListener('load', async () => {
 
 
 /* =========================================================
-   PATCH v4 - Receitas adicionais sem mexer no HTML original
-   - Config é preservado.
-   - O bloco é criado via JavaScript dentro da aba Config.
-   ========================================================= */
-
-state.receitasAdicionais = state.receitasAdicionais || {};
-
-function saveLocalReceitasAdicionais(){
-  localStorage.setItem('painel_bi_receitas_adicionais', JSON.stringify(state.receitasAdicionais || {}));
-}
-
-function loadLocalReceitasAdicionais(){
-  try{
-    state.receitasAdicionais = JSON.parse(localStorage.getItem('painel_bi_receitas_adicionais') || '{}');
-  }catch{
-    state.receitasAdicionais = {};
-  }
-}
-
-function getReceitaAdicional(monthKey){
-  const item = (state.receitasAdicionais || {})[monthKey];
-  if(!item) return 0;
-  if(typeof item === 'number') return Number(item || 0);
-  return Number(item.valor || 0);
-}
-
-function ensureReceitasAdicionaisUI(){
-  if(document.getElementById('extraMonthInput')) return;
-
-  const config = document.getElementById('config');
-  if(!config) return;
-
-  const panel = document.createElement('div');
-  panel.className = 'panel';
-  panel.style.marginTop = '16px';
-  panel.innerHTML = `
-    <h2>Receitas adicionais do mês</h2>
-    <div class="sub">Use para venda de veículos ou outras receitas que entram no faturamento total gerencial.</div>
-    <div class="meta-card">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><label>Mês</label><input type="month" id="extraMonthInput"></div>
-        <div><label>Valor adicional</label><input type="text" id="extraValueInput" placeholder="0,00"></div>
-      </div>
-      <div style="margin-top:10px"><label>Descrição</label><input type="text" id="extraDescInput" placeholder="Ex.: venda de veículo, receita extraordinária..."></div>
-      <div class="top-actions" style="margin-top:12px">
-        <button id="saveExtraBtn" type="button">Salvar receita adicional</button>
-        <button id="deleteExtraBtn" type="button">Excluir receita do mês</button>
-      </div>
-      <div id="extraList" class="meta-list"></div>
-    </div>
-  `;
-
-  const validation = Array.from(config.querySelectorAll('h2')).find(h => h.textContent.trim().toLowerCase().includes('validação'));
-  if(validation && validation.closest('.panel')){
-    config.insertBefore(panel, validation.closest('.panel'));
-  }else{
-    config.appendChild(panel);
-  }
-}
-
-function renderReceitasAdicionaisList(){
-  const box = document.getElementById('extraList');
-  if(!box) return;
-
-  const keys = Object.keys(state.receitasAdicionais || {}).sort();
-  box.innerHTML = keys.length
-    ? keys.map(k=>{
-        const item = state.receitasAdicionais[k];
-        const valor = typeof item === 'number' ? item : Number(item.valor || 0);
-        const desc = typeof item === 'number' ? '' : (item.descricao || '');
-        return `<div class="meta-pill"><span>${prettyMonth(k)}${desc ? ' - ' + desc : ''}</span><span>${fmtMoney(valor)}</span></div>`;
-      }).join('')
-    : '<div class="hint">Nenhuma receita adicional cadastrada.</div>';
-}
-
-function bindReceitasAdicionais(){
-  ensureReceitasAdicionaisUI();
-
-  const month = document.getElementById('extraMonthInput');
-  const value = document.getElementById('extraValueInput');
-  const desc = document.getElementById('extraDescInput');
-  const save = document.getElementById('saveExtraBtn');
-  const del = document.getElementById('deleteExtraBtn');
-
-  if(month && !month.value){
-    month.value = dashboardMonth?.value || allMonthKeys().slice(-1)[0] || '';
-  }
-
-  if(save && !save.__boundExtra){
-    save.__boundExtra = true;
-    save.onclick = function(e){
-      e.preventDefault();
-      const key = month?.value || dashboardMonth?.value;
-      if(!key){
-        alert('Selecione o mês.');
-        return;
-      }
-      const valor = parseBR(value?.value || 0);
-      state.receitasAdicionais[key] = {
-        valor,
-        descricao: String(desc?.value || '').trim()
-      };
-      saveLocalReceitasAdicionais();
-      renderReceitasAdicionaisList();
-      renderAll();
-      alert('Receita adicional salva para ' + prettyMonth(key) + '.');
-    };
-  }
-
-  if(del && !del.__boundExtra){
-    del.__boundExtra = true;
-    del.onclick = function(e){
-      e.preventDefault();
-      const key = month?.value || dashboardMonth?.value;
-      if(!key) return;
-      delete state.receitasAdicionais[key];
-      saveLocalReceitasAdicionais();
-      renderReceitasAdicionaisList();
-      renderAll();
-      alert('Receita adicional removida de ' + prettyMonth(key) + '.');
-    };
-  }
-
-  renderReceitasAdicionaisList();
-}
-
-if(!window.__getMonthDatasetOriginalV4 && typeof getMonthDataset === 'function'){
-  window.__getMonthDatasetOriginalV4 = getMonthDataset;
-
-  getMonthDataset = function(monthKey){
-    const rows = window.__getMonthDatasetOriginalV4(monthKey);
-    const adicional = getReceitaAdicional(monthKey);
-
-    rows.forEach(r => {
-      r.brutoOperacional = Number(r.bruto || 0);
-      r.receitaAdicional = 0;
-      r.brutoGerencial = r.brutoOperacional;
-      r.liquido = r.brutoOperacional - Number(r.setor || 0);
-    });
-
-    if(!adicional || !rows.length) return rows;
-
-    const diasComBruto = rows.filter(r => Number(r.brutoOperacional || 0) > 0).length || rows.length || 1;
-    const adicionalDia = adicional / diasComBruto;
-
-    rows.forEach(r => {
-      if(Number(r.brutoOperacional || 0) > 0){
-        r.receitaAdicional = adicionalDia;
-      }
-      r.brutoGerencial = r.brutoOperacional + r.receitaAdicional;
-      r.bruto = r.brutoGerencial;
-      r.liquido = r.brutoGerencial - Number(r.setor || 0);
-    });
-
-    return rows;
-  };
-}
-
-if(!window.__renderDashboardOriginalV4 && typeof renderDashboard === 'function'){
-  window.__renderDashboardOriginalV4 = renderDashboard;
-
-  renderDashboard = function(){
-    window.__renderDashboardOriginalV4();
-
-    const monthKey = dashboardMonth?.value || allMonthKeys().slice(-1)[0];
-    const adicional = getReceitaAdicional(monthKey);
-    const helpBruto = document.querySelector('#cardBruto + .help');
-
-    if(helpBruto){
-      helpBruto.textContent = adicional
-        ? 'Operacional + receitas adicionais: ' + fmtMoney(adicional)
-        : 'Soma do bruto do mês';
-    }
-  };
-}
-
-if(!window.__openPageOriginalV4 && typeof openPage === 'function'){
-  window.__openPageOriginalV4 = openPage;
-  openPage = function(pageId){
-    window.__openPageOriginalV4(pageId);
-    if(pageId === 'config'){
-      setTimeout(bindReceitasAdicionais, 100);
-    }
-  };
-  window.openPage = openPage;
-}
-
-if(!window.__renderAllOriginalV4 && typeof renderAll === 'function'){
-  window.__renderAllOriginalV4 = renderAll;
-
-  renderAll = function(){
-    window.__renderAllOriginalV4();
-    ensureReceitasAdicionaisUI();
-    renderReceitasAdicionaisList();
-  };
-}
-
-loadLocalReceitasAdicionais();
-
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', function(){
-    ensureReceitasAdicionaisUI();
-    bindReceitasAdicionais();
-    try{ renderAll(); }catch(e){}
-  });
-}else{
-  ensureReceitasAdicionaisUI();
-  bindReceitasAdicionais();
-  setTimeout(()=>{ try{ renderAll(); }catch(e){} }, 50);
-}
-
-
-/* =========================================================
-   PATCH v5 - Remover bloqueio visual do menu Config
-   - Garante que todos os botões do menu fiquem visíveis.
-   - Força perfil admin local.
-   - Evita que scripts antigos escondam Config após o carregamento.
+   PATCH v11 - Valores Reais do Mês + Config visível
+   Base limpa, sem Receitas Adicionais/Descontos.
    ========================================================= */
 
 try{
@@ -1138,7 +923,7 @@ try{
   window.usuarioRef = window.usuarioRef || '';
 }catch(e){}
 
-function liberarMenusFaturamentoV5(){
+function liberarMenuConfigV11(){
   document.querySelectorAll('.navbtn').forEach(btn=>{
     btn.style.display = '';
     btn.hidden = false;
@@ -1161,349 +946,419 @@ function liberarMenusFaturamentoV5(){
   }
 }
 
-const observerMenuFaturamentoV5 = new MutationObserver(()=>{
-  liberarMenusFaturamentoV5();
-});
+state.valoresReaisMes = state.valoresReaisMes || {};
 
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', ()=>{
-    liberarMenusFaturamentoV5();
-    const sidebar = document.querySelector('.sidebar') || document.body;
-    observerMenuFaturamentoV5.observe(sidebar, {attributes:true, childList:true, subtree:true});
-    setTimeout(liberarMenusFaturamentoV5, 300);
-    setTimeout(liberarMenusFaturamentoV5, 1000);
-  });
-}else{
-  liberarMenusFaturamentoV5();
-  const sidebar = document.querySelector('.sidebar') || document.body;
-  observerMenuFaturamentoV5.observe(sidebar, {attributes:true, childList:true, subtree:true});
-  setTimeout(liberarMenusFaturamentoV5, 300);
-  setTimeout(liberarMenusFaturamentoV5, 1000);
-}
-
-
-/* =========================================================
-   PATCH v6 - Descontos gerenciais do mês
-   - Adiciona campo manual de descontos no Config.
-   - Líquido = bruto operacional + receitas adicionais - setor - descontos.
-   ========================================================= */
-
-state.descontosGerenciais = state.descontosGerenciais || {};
-
-function saveLocalDescontosGerenciais(){
-  localStorage.setItem('painel_bi_descontos_gerenciais', JSON.stringify(state.descontosGerenciais || {}));
-}
-
-function loadLocalDescontosGerenciais(){
+function loadValoresReaisV11(){
   try{
-    state.descontosGerenciais = JSON.parse(localStorage.getItem('painel_bi_descontos_gerenciais') || '{}');
-  }catch{
-    state.descontosGerenciais = {};
+    state.valoresReaisMes = JSON.parse(localStorage.getItem('painel_bi_valores_reais') || '{}');
+  }catch(e){
+    state.valoresReaisMes = {};
   }
 }
 
-function getDescontoGerencial(monthKey){
-  const item = (state.descontosGerenciais || {})[monthKey];
-  if(!item) return 0;
-  if(typeof item === 'number') return Number(item || 0);
-  return Number(item.valor || 0);
+function saveValoresReaisV11(){
+  localStorage.setItem('painel_bi_valores_reais', JSON.stringify(state.valoresReaisMes || {}));
 }
 
-function ensureDescontosGerenciaisUI(){
-  if(document.getElementById('descontoMonthInput')) return;
+function getValoresReaisV11(monthKey){
+  return (state.valoresReaisMes || {})[monthKey] || {};
+}
 
+function ensureValoresReaisUIV11(){
   const config = document.getElementById('config');
   if(!config) return;
 
+  liberarMenuConfigV11();
+
+  if(document.getElementById('valoresReaisV11')) return;
+
   const panel = document.createElement('div');
   panel.className = 'panel';
+  panel.id = 'valoresReaisV11';
   panel.style.marginTop = '16px';
+
   panel.innerHTML = `
-    <h2>Descontos gerenciais do mês</h2>
-    <div class="sub">Use para descontos manuais que reduzem a receita líquida gerencial.</div>
+    <h2>Valores Reais do Mês</h2>
+    <div class="sub">Informe o valor final real do bruto e do líquido. Se não informar, o painel usa o cálculo normal.</div>
     <div class="meta-card">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><label>Mês</label><input type="month" id="descontoMonthInput"></div>
-        <div><label>Valor do desconto</label><input type="text" id="descontoValueInput" placeholder="0,00"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div>
+          <label>Mês</label>
+          <input type="month" id="vrMesV11">
+        </div>
+        <div>
+          <label>Valor Bruto Real</label>
+          <input type="text" id="vrBrutoV11" placeholder="Ex.: 71000000">
+        </div>
+        <div>
+          <label>Valor Líquido Real</label>
+          <input type="text" id="vrLiquidoV11" placeholder="Ex.: 66000000">
+        </div>
       </div>
-      <div style="margin-top:10px"><label>Descrição</label><input type="text" id="descontoDescInput" placeholder="Ex.: ajuste contábil, desconto financeiro..."></div>
       <div class="top-actions" style="margin-top:12px">
-        <button id="saveDescontoBtn" type="button">Salvar desconto</button>
-        <button id="deleteDescontoBtn" type="button">Excluir desconto do mês</button>
+        <button id="vrSalvarV11" type="button">Salvar valores reais</button>
+        <button id="vrExcluirV11" type="button">Excluir valores do mês</button>
       </div>
-      <div id="descontoList" class="meta-list"></div>
+      <div id="vrListaV11" class="meta-list"></div>
     </div>
   `;
 
-  const receitasTitle = Array.from(config.querySelectorAll('h2')).find(h => h.textContent.trim().toLowerCase().includes('receitas adicionais'));
-  if(receitasTitle && receitasTitle.closest('.panel')){
-    receitasTitle.closest('.panel').after(panel);
+  const validationTitle = Array.from(config.querySelectorAll('h2')).find(h =>
+    h.textContent.trim().toLowerCase().includes('validação')
+  );
+
+  if(validationTitle && validationTitle.closest('.panel')){
+    config.insertBefore(panel, validationTitle.closest('.panel'));
   }else{
-    const validationTitle = Array.from(config.querySelectorAll('h2')).find(h => h.textContent.trim().toLowerCase().includes('validação'));
-    if(validationTitle && validationTitle.closest('.panel')){
-      config.insertBefore(panel, validationTitle.closest('.panel'));
-    }else{
-      config.appendChild(panel);
-    }
+    config.appendChild(panel);
   }
+
+  bindValoresReaisV11();
+  renderValoresReaisV11();
 }
 
-function renderDescontosGerenciaisList(){
-  const box = document.getElementById('descontoList');
+function renderValoresReaisV11(){
+  const box = document.getElementById('vrListaV11');
   if(!box) return;
 
-  const keys = Object.keys(state.descontosGerenciais || {}).sort();
+  const keys = Object.keys(state.valoresReaisMes || {}).sort();
   box.innerHTML = keys.length
     ? keys.map(k=>{
-        const item = state.descontosGerenciais[k];
-        const valor = typeof item === 'number' ? item : Number(item.valor || 0);
-        const desc = typeof item === 'number' ? '' : (item.descricao || '');
-        return `<div class="meta-pill"><span>${prettyMonth(k)}${desc ? ' - ' + desc : ''}</span><span>${fmtMoney(valor)}</span></div>`;
+        const v = state.valoresReaisMes[k] || {};
+        return `<div class="meta-pill">
+          <span>${prettyMonth(k)}</span>
+          <span>Bruto: ${fmtMoney(v.bruto || 0)} | Líquido: ${fmtMoney(v.liquido || 0)}</span>
+        </div>`;
       }).join('')
-    : '<div class="hint">Nenhum desconto cadastrado.</div>';
+    : '<div class="hint">Nenhum valor real informado.</div>';
 }
 
-function bindDescontosGerenciais(){
-  ensureDescontosGerenciaisUI();
+function bindValoresReaisV11(){
+  const mes = document.getElementById('vrMesV11');
+  const bruto = document.getElementById('vrBrutoV11');
+  const liquido = document.getElementById('vrLiquidoV11');
+  const salvar = document.getElementById('vrSalvarV11');
+  const excluir = document.getElementById('vrExcluirV11');
 
-  const month = document.getElementById('descontoMonthInput');
-  const value = document.getElementById('descontoValueInput');
-  const desc = document.getElementById('descontoDescInput');
-  const save = document.getElementById('saveDescontoBtn');
-  const del = document.getElementById('deleteDescontoBtn');
-
-  if(month && !month.value){
-    month.value = dashboardMonth?.value || allMonthKeys().slice(-1)[0] || '';
+  if(mes && !mes.value){
+    mes.value = dashboardMonth?.value || allMonthKeys().slice(-1)[0] || '';
   }
 
-  if(save && !save.__boundDesconto){
-    save.__boundDesconto = true;
-    save.onclick = function(e){
+  if(salvar && !salvar.__boundV11){
+    salvar.__boundV11 = true;
+    salvar.onclick = function(e){
       e.preventDefault();
-      const key = month?.value || dashboardMonth?.value;
-      if(!key){
-        alert('Selecione o mês.');
-        return;
-      }
-      const valor = parseBR(value?.value || 0);
-      state.descontosGerenciais[key] = {
-        valor,
-        descricao: String(desc?.value || '').trim()
+      const key = mes?.value || dashboardMonth?.value;
+      if(!key) return alert('Selecione o mês.');
+
+      state.valoresReaisMes[key] = {
+        bruto: parseBR(bruto?.value || 0),
+        liquido: parseBR(liquido?.value || 0)
       };
-      saveLocalDescontosGerenciais();
-      renderDescontosGerenciaisList();
+
+      saveValoresReaisV11();
+      renderValoresReaisV11();
       renderAll();
-      alert('Desconto salvo para ' + prettyMonth(key) + '.');
+      alert('Valores reais salvos para ' + prettyMonth(key) + '.');
     };
   }
 
-  if(del && !del.__boundDesconto){
-    del.__boundDesconto = true;
-    del.onclick = function(e){
+  if(excluir && !excluir.__boundV11){
+    excluir.__boundV11 = true;
+    excluir.onclick = function(e){
       e.preventDefault();
-      const key = month?.value || dashboardMonth?.value;
+      const key = mes?.value || dashboardMonth?.value;
       if(!key) return;
-      delete state.descontosGerenciais[key];
-      saveLocalDescontosGerenciais();
-      renderDescontosGerenciaisList();
+      delete state.valoresReaisMes[key];
+      saveValoresReaisV11();
+      renderValoresReaisV11();
       renderAll();
-      alert('Desconto removido de ' + prettyMonth(key) + '.');
+      alert('Valores reais removidos de ' + prettyMonth(key) + '.');
     };
   }
-
-  renderDescontosGerenciaisList();
 }
 
-if(!window.__getMonthDatasetOriginalV6 && typeof getMonthDataset === 'function'){
-  window.__getMonthDatasetOriginalV6 = getMonthDataset;
+// Ajusta dataset para usar bruto real/líquido real como valor final do mês.
+if(!window.__getMonthDatasetOriginalV11 && typeof getMonthDataset === 'function'){
+  window.__getMonthDatasetOriginalV11 = getMonthDataset;
 
   getMonthDataset = function(monthKey){
-    const rows = window.__getMonthDatasetOriginalV6(monthKey);
-    const desconto = getDescontoGerencial(monthKey);
+    const rows = window.__getMonthDatasetOriginalV11(monthKey);
+    const real = getValoresReaisV11(monthKey);
+    const brutoReal = Number(real.bruto || 0);
+    const liquidoReal = Number(real.liquido || 0);
 
-    rows.forEach(r => {
-      r.descontoGerencial = 0;
-    });
-
-    if(!desconto || !rows.length){
+    if(!rows.length || (!brutoReal && !liquidoReal)){
       return rows;
     }
 
-    const diasComBase = rows.filter(r => Number(r.bruto || 0) > 0).length || rows.length || 1;
-    const descontoDia = desconto / diasComBase;
+    const linhasBase = rows.filter(r => Number(r.bruto || 0) > 0);
+    const alvo = linhasBase.length ? linhasBase : rows;
 
-    rows.forEach(r => {
-      if(Number(r.bruto || 0) > 0){
-        r.descontoGerencial = descontoDia;
-        r.liquido = Number(r.liquido || 0) - descontoDia;
-      }
-    });
+    if(brutoReal){
+      const brutoAtual = rows.reduce((s,r)=>s + Number(r.bruto || 0),0);
+      const deltaBruto = brutoReal - brutoAtual;
+      const porLinha = deltaBruto / alvo.length;
+      alvo.forEach(r=>{
+        r.bruto = Number(r.bruto || 0) + porLinha;
+      });
+    }
+
+    if(liquidoReal){
+      const liquidoAtual = rows.reduce((s,r)=>s + Number(r.liquido || 0),0);
+      const deltaLiquido = liquidoReal - liquidoAtual;
+      const porLinha = deltaLiquido / alvo.length;
+      alvo.forEach(r=>{
+        r.liquido = Number(r.liquido || 0) + porLinha;
+      });
+    }
 
     return rows;
   };
 }
 
-if(!window.__renderDashboardOriginalV6 && typeof renderDashboard === 'function'){
-  window.__renderDashboardOriginalV6 = renderDashboard;
+// Ajusta % refaturado + substituto para usar líquido quando houver valor real.
+if(!window.__renderDashboardOriginalV11 && typeof renderDashboard === 'function'){
+  window.__renderDashboardOriginalV11 = renderDashboard;
 
   renderDashboard = function(){
-    window.__renderDashboardOriginalV6();
+    window.__renderDashboardOriginalV11();
 
     const monthKey = dashboardMonth?.value || allMonthKeys().slice(-1)[0];
-    const adicional = typeof getReceitaAdicional === 'function' ? getReceitaAdicional(monthKey) : 0;
-    const desconto = getDescontoGerencial(monthKey);
+    const real = getValoresReaisV11(monthKey);
+    const rows = getMonthDataset(monthKey);
 
-    const helpLiquido = document.querySelector('#cardLiquido + .help');
-    if(helpLiquido){
-      helpLiquido.textContent = (adicional || desconto)
-        ? 'Bruto gerencial - setor - descontos'
-        : 'Bruto - setor';
+    const setor = rows.reduce((s,r)=>s + Number(r.setor || 0),0);
+    const subst = rows.reduce((s,r)=>s + Number(r.substituicao || 0),0);
+    const liquido = rows.reduce((s,r)=>s + Number(r.liquido || 0),0);
+
+    if(real.liquido && liquido){
+      setText('cardErroPct', fmtPct(((setor + subst) / liquido) * 100));
+      const help = document.querySelector('#cardErroPct + .help');
+      if(help) help.textContent = '(Refaturado + substituto) ÷ líquido real';
     }
   };
 }
 
-if(!window.__renderAllOriginalV6 && typeof renderAll === 'function'){
-  window.__renderAllOriginalV6 = renderAll;
+// Ajusta anual para percentual usar líquido.
+if(!window.__aggregateYearOriginalV11 && typeof aggregateYear === 'function'){
+  window.__aggregateYearOriginalV11 = aggregateYear;
 
-  renderAll = function(){
-    window.__renderAllOriginalV6();
-    ensureDescontosGerenciaisUI();
-    renderDescontosGerenciaisList();
+  aggregateYear = function(year){
+    const arr = window.__aggregateYearOriginalV11(year);
+    return arr.map(m=>{
+      const rows = getMonthDataset(m.monthKey);
+      const setor = rows.reduce((s,r)=>s + Number(r.setor || 0),0);
+      const subst = rows.reduce((s,r)=>s + Number(r.substituicao || 0),0);
+      const liquido = rows.reduce((s,r)=>s + Number(r.liquido || 0),0);
+      return {
+        ...m,
+        bruto: rows.reduce((s,r)=>s + Number(r.bruto || 0),0),
+        liquido,
+        refPct: liquido ? ((setor + subst) / liquido) * 100 : 0
+      };
+    });
   };
 }
 
-if(!window.__openPageOriginalV6 && typeof openPage === 'function'){
-  window.__openPageOriginalV6 = openPage;
+if(!window.__openPageOriginalV11 && typeof openPage === 'function'){
+  window.__openPageOriginalV11 = openPage;
   openPage = function(pageId){
-    window.__openPageOriginalV6(pageId);
+    window.__openPageOriginalV11(pageId);
+    liberarMenuConfigV11();
     if(pageId === 'config'){
       setTimeout(()=>{
-        if(typeof bindReceitasAdicionais === 'function') bindReceitasAdicionais();
-        bindDescontosGerenciais();
-      }, 100);
+        ensureValoresReaisUIV11();
+        renderValoresReaisV11();
+      },100);
     }
   };
   window.openPage = openPage;
 }
 
-loadLocalDescontosGerenciais();
+if(!window.__renderAllOriginalV11 && typeof renderAll === 'function'){
+  window.__renderAllOriginalV11 = renderAll;
+  renderAll = function(){
+    liberarMenuConfigV11();
+    window.__renderAllOriginalV11();
+    ensureValoresReaisUIV11();
+    renderValoresReaisV11();
+  };
+}
+
+loadValoresReaisV11();
 
 if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', function(){
-    ensureDescontosGerenciaisUI();
-    bindDescontosGerenciais();
+  document.addEventListener('DOMContentLoaded', ()=>{
+    liberarMenuConfigV11();
+    ensureValoresReaisUIV11();
+    renderValoresReaisV11();
     try{ renderAll(); }catch(e){}
   });
 }else{
-  ensureDescontosGerenciaisUI();
-  bindDescontosGerenciais();
-  setTimeout(()=>{ try{ renderAll(); }catch(e){} }, 50);
+  liberarMenuConfigV11();
+  ensureValoresReaisUIV11();
+  renderValoresReaisV11();
+  setTimeout(()=>{ try{ renderAll(); }catch(e){} },50);
 }
 
+setTimeout(liberarMenuConfigV11, 300);
+setTimeout(liberarMenuConfigV11, 1000);
 
-/* =========================================================
-   PATCH v7 - Ajustes Gerenciais Compacto
-   - Receita adicional e desconto lado a lado.
-   - Resumo de impacto líquido.
-   ========================================================= */
 
-function ensureAjustesGerenciaisCompactoV7(){
-  const config = document.getElementById('config');
-  if(!config) return;
+/* PATCH v12 - Valores reais na Supabase + Dashboard Operacional */
 
-  const receitaPanel = Array.from(config.querySelectorAll('.panel')).find(p =>
-    (p.querySelector('h2')?.textContent || '').toLowerCase().includes('receitas adicionais')
-  );
+const VALORES_REAIS_TABLE_V12 = 'valores_reais_faturamento';
 
-  const descontoPanel = Array.from(config.querySelectorAll('.panel')).find(p =>
-    (p.querySelector('h2')?.textContent || '').toLowerCase().includes('descontos gerenciais')
-  );
-
-  if(!receitaPanel || !descontoPanel) return;
-  if(document.getElementById('ajustesGerenciaisCompactoV7')) return;
-
-  const wrap = document.createElement('div');
-  wrap.id = 'ajustesGerenciaisCompactoV7';
-  wrap.className = 'panel';
-  wrap.style.marginTop = '16px';
-
-  wrap.innerHTML = `
-    <h2>Ajustes Gerenciais</h2>
-    <div class="sub">Receitas extraordinárias e descontos gerenciais que afetam o resultado líquido.</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div id="slotReceitaV7"></div>
-      <div id="slotDescontoV7"></div>
-    </div>
-
-    <div style="margin-top:16px;padding:12px;border:1px solid var(--line,#ddd);border-radius:10px">
-      <div style="font-weight:700;margin-bottom:8px">Resumo do impacto gerencial</div>
-      <div id="impactoGerencialResumoV7"></div>
-    </div>
-  `;
-
-  receitaPanel.parentNode.insertBefore(wrap, receitaPanel);
-
-  wrap.querySelector('#slotReceitaV7').appendChild(receitaPanel);
-  wrap.querySelector('#slotDescontoV7').appendChild(descontoPanel);
-
-  atualizarResumoGerencialV7();
+function aplicarLayoutValoresReaisMeiaTelaV12(){
+  const panel = document.getElementById('valoresReaisV11');
+  if(!panel) return;
+  panel.style.maxWidth = 'calc(50% - 8px)';
+  panel.style.minWidth = '520px';
 }
 
-function atualizarResumoGerencialV7(){
-  const box = document.getElementById('impactoGerencialResumoV7');
-  if(!box) return;
-
-  const receitas = Object.values(state.receitasAdicionais || {})
-    .reduce((s,v)=>s + Number((typeof v==='number'?v:(v?.valor||0)) || 0),0);
-
-  const descontos = Object.values(state.descontosGerenciais || {})
-    .reduce((s,v)=>s + Number((typeof v==='number'?v:(v?.valor||0)) || 0),0);
-
-  const impacto = receitas - descontos;
-
-  box.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-      <div><strong>Receitas adicionais</strong><br>${fmtMoney(receitas)}</div>
-      <div><strong>Descontos</strong><br>${fmtMoney(descontos)}</div>
-      <div><strong>Impacto líquido</strong><br>${fmtMoney(impacto)}</div>
-    </div>
-  `;
+async function salvarValoresReaisSupabaseV12(monthKey, bruto, liquido){
+  if(!SUPABASE_A?.url || !SUPABASE_A?.anonKey) return;
+  const payload = [{ mes: `${monthKey}-01`, bruto_real: Number(bruto||0), liquido_real: Number(liquido||0) }];
+  const res = await fetch(`${SUPABASE_A.url}/rest/v1/${VALORES_REAIS_TABLE_V12}?on_conflict=mes`, {
+    method:'POST',
+    headers:{
+      apikey:SUPABASE_A.anonKey,
+      Authorization:`Bearer ${SUPABASE_A.anonKey}`,
+      'Content-Type':'application/json',
+      Prefer:'resolution=merge-duplicates,return=representation'
+    },
+    body:JSON.stringify(payload)
+  });
+  if(!res.ok) throw new Error(`Erro ao salvar valores reais: ${res.status} ${await res.text()}`);
 }
 
-if(!window.__renderAllOriginalV7 && typeof renderAll === 'function'){
-  window.__renderAllOriginalV7 = renderAll;
+async function carregarValoresReaisSupabaseV12(){
+  if(!SUPABASE_A?.url || !SUPABASE_A?.anonKey) return;
+  const res = await fetch(`${SUPABASE_A.url}/rest/v1/${VALORES_REAIS_TABLE_V12}?select=mes,bruto_real,liquido_real&limit=5000`, {
+    method:'GET',
+    headers:{apikey:SUPABASE_A.anonKey, Authorization:`Bearer ${SUPABASE_A.anonKey}`},
+    cache:'no-store'
+  });
+  if(!res.ok){
+    console.warn('Valores reais não carregados:', await res.text());
+    return;
+  }
+  const rows = await res.json();
+  rows.forEach(r=>{
+    const key = normalizeMonthDate(r.mes)?.slice(0,7);
+    if(key) state.valoresReaisMes[key] = { bruto:parseBR(r.bruto_real), liquido:parseBR(r.liquido_real) };
+  });
+  saveValoresReaisV11?.();
+}
 
-  renderAll = function(){
-    window.__renderAllOriginalV7();
-    setTimeout(()=>{
+async function excluirValoresReaisSupabaseV12(monthKey){
+  if(!SUPABASE_A?.url || !SUPABASE_A?.anonKey) return;
+  await fetch(`${SUPABASE_A.url}/rest/v1/${VALORES_REAIS_TABLE_V12}?mes=eq.${monthKey}-01`, {
+    method:'DELETE',
+    headers:{apikey:SUPABASE_A.anonKey, Authorization:`Bearer ${SUPABASE_A.anonKey}`}
+  });
+}
+
+function rebindValoresReaisSupabaseV12(){
+  const salvar = document.getElementById('vrSalvarV11');
+  const excluir = document.getElementById('vrExcluirV11');
+  const mes = document.getElementById('vrMesV11');
+  const bruto = document.getElementById('vrBrutoV11');
+  const liquido = document.getElementById('vrLiquidoV11');
+
+  if(salvar && !salvar.__boundSupabaseV12){
+    salvar.__boundSupabaseV12 = true;
+    salvar.addEventListener('click', async ()=>{
+      const key = mes?.value || dashboardMonth?.value;
+      if(!key) return;
       try{
-        ensureAjustesGerenciaisCompactoV7();
-        atualizarResumoGerencialV7();
-      }catch(e){}
-    },50);
-  };
+        await salvarValoresReaisSupabaseV12(key, parseBR(bruto?.value||0), parseBR(liquido?.value||0));
+      }catch(e){
+        alert(e.message + '\n\nCrie a tabela valores_reais_faturamento na Supabase A.');
+      }
+    });
+  }
+
+  if(excluir && !excluir.__boundSupabaseV12){
+    excluir.__boundSupabaseV12 = true;
+    excluir.addEventListener('click', async ()=>{
+      const key = mes?.value || dashboardMonth?.value;
+      if(key) await excluirValoresReaisSupabaseV12(key);
+    });
+  }
 }
 
-if(!window.__openPageOriginalV7 && typeof openPage === 'function'){
-  window.__openPageOriginalV7 = openPage;
-  openPage = function(pageId){
-    window.__openPageOriginalV7(pageId);
+function getMonthDatasetOperacionalV12(monthKey){
+  if(window.__getMonthDatasetOriginalV11) return window.__getMonthDatasetOriginalV11(monthKey);
+  return getMonthDataset(monthKey);
+}
 
-    if(pageId === 'config'){
-      setTimeout(()=>{
-        ensureAjustesGerenciaisCompactoV7();
-        atualizarResumoGerencialV7();
-      },150);
-    }
+function syncOperacionalSelectV12(){
+  const sel = document.getElementById('operacionalMonth');
+  if(!sel) return;
+  const keys = allMonthKeys();
+  const current = sel.value || dashboardMonth?.value || keys[keys.length-1];
+  sel.innerHTML = '';
+  keys.forEach(k=>{
+    const opt=document.createElement('option');
+    opt.value=k;
+    opt.textContent=prettyMonth(k);
+    sel.appendChild(opt);
+  });
+  if(keys.includes(current)) sel.value=current;
+  else if(keys.length) sel.value=keys[keys.length-1];
+  if(!sel.__boundV12){
+    sel.__boundV12 = true;
+    sel.addEventListener('change', renderDashboardOperacionalV12);
+  }
+}
+
+function renderDashboardOperacionalV12(){
+  syncOperacionalSelectV12();
+  const monthKey = document.getElementById('operacionalMonth')?.value || dashboardMonth?.value || allMonthKeys().slice(-1)[0];
+  if(!monthKey) return;
+  const rows = getMonthDatasetOperacionalV12(monthKey);
+  const bruto = rows.reduce((s,r)=>s+Number(r.bruto||0),0);
+  const setor = rows.reduce((s,r)=>s+Number(r.setor||0),0);
+  const subst = rows.reduce((s,r)=>s+Number(r.substituicao||0),0);
+  const liquido = rows.reduce((s,r)=>s+Number(r.liquido||0),0);
+  const inter = rows.reduce((s,r)=>s+Number(r.inter||0),0);
+  const nac = rows.reduce((s,r)=>s+Number(r.nac||0),0);
+  const pct = liquido ? ((setor+subst)/liquido)*100 : 0;
+  setText('opBruto', fmtMoney(bruto));
+  setText('opSetor', fmtMoney(setor));
+  setText('opSubst', fmtMoney(subst));
+  setText('opLiquido', fmtMoney(liquido));
+  setText('opPctErro', fmtPct(pct));
+  setText('opInter', fmtMoney(inter));
+  setText('opNac', fmtMoney(nac));
+  setText('opMes', prettyMonth(monthKey));
+}
+
+if(!window.__openPageOriginalV12 && typeof openPage === 'function'){
+  window.__openPageOriginalV12 = openPage;
+  openPage = function(pageId){
+    window.__openPageOriginalV12(pageId);
+    if(pageId === 'config') setTimeout(()=>{ aplicarLayoutValoresReaisMeiaTelaV12(); rebindValoresReaisSupabaseV12(); },150);
+    if(pageId === 'dashboardOperacional') setTimeout(renderDashboardOperacionalV12,100);
   };
   window.openPage = openPage;
 }
 
-setTimeout(()=>{
-  try{
-    ensureAjustesGerenciaisCompactoV7();
-    atualizarResumoGerencialV7();
-  }catch(e){}
-},500);
+if(!window.__renderAllOriginalV12 && typeof renderAll === 'function'){
+  window.__renderAllOriginalV12 = renderAll;
+  renderAll = function(){
+    window.__renderAllOriginalV12();
+    aplicarLayoutValoresReaisMeiaTelaV12();
+    rebindValoresReaisSupabaseV12();
+    syncOperacionalSelectV12();
+    renderDashboardOperacionalV12();
+  };
+}
 
+(async function(){
+  await carregarValoresReaisSupabaseV12();
+  renderValoresReaisV11?.();
+  try{ renderAll(); }catch(e){}
+})();
