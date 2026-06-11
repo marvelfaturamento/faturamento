@@ -336,7 +336,8 @@ async function refreshAllFromSupabases(showAlert=true){
     await Promise.all([
       loadBrutoFromSupabaseA(),
       loadRefaturadoFromSupabaseB(),
-      loadMetasFromSupabaseA().catch(()=>{})
+      loadMetasFromSupabaseA().catch(()=>{}),
+      (typeof carregarValoresReaisSupabaseV12 === 'function' ? carregarValoresReaisSupabaseV12().catch(()=>{}) : Promise.resolve())
     ]);
     renderAll();
     if (showAlert) alert('Leitura atualizada de Supabase A + B.');
@@ -461,7 +462,8 @@ function aggregateYear(year){
     const liquido=rows.reduce((s,r)=>s+r.liquido,0);
     const inter=rows.reduce((s,r)=>s+r.inter,0);
     const nac=rows.reduce((s,r)=>s+r.nac,0);
-    return {monthKey, bruto, setor, substituicao, liquido, inter, nac, refPct: bruto ? ((setor + substituicao)/bruto)*100 : 0};
+    const meta=Number(state.metas[monthKey] || 0);
+    return {monthKey, bruto, setor, substituicao, liquido, inter, nac, meta, refPct: bruto ? ((setor + substituicao)/bruto)*100 : 0};
   });
 }
 
@@ -499,12 +501,13 @@ function renderDashboard(){
   const meta=state.metas[monthKey]||0;
   const dim=daysInMonth(monthKey);
   const metaDia=dim ? (meta/dim) : 0;
-  const falta=meta-valorLiquido;
-  const atingido=meta ? (valorLiquido/meta)*100 : 0;
+  const baseMeta = bruto;
+  const falta=meta-baseMeta;
+  const atingido=meta ? (baseMeta/meta)*100 : 0;
   const interPct=bruto ? (inter/bruto)*100 : 0;
   const nacPct=bruto ? (nac/bruto)*100 : 0;
   const refPct=bruto ? ((setor + substituicao)/bruto)*100 : 0;
-  const mediaDia=dim ? (valorLiquido/dim) : 0;
+  const mediaDia=dim ? (baseMeta/dim) : 0;
   const precisaDia=meta ? Math.max(0,falta/dim) : 0;
   const populated=rows.filter(r=>r.bruto>0);
 
@@ -547,7 +550,7 @@ function renderDashboard(){
   setText('dashSubtitle', `Período com ${populated.length} dia(s) carregado(s). Último lançamento: ${populated.length ? populated[populated.length-1].date.split('-').reverse().join('/') : '-'}.`);
 
   if(!meta){ setText('cardStatus','Meta não definida'); setClass('cardStatus','pill bad'); }
-  else if(valorLiquido>=meta){ setText('cardStatus','Meta batida'); setClass('cardStatus','pill good'); }
+  else if(baseMeta>=meta){ setText('cardStatus','Meta batida'); setClass('cardStatus','pill good'); }
   else { setText('cardStatus','Abaixo da meta'); setClass('cardStatus','pill bad'); }
 
   if(diarioMonth.value!==monthKey) diarioMonth.value=monthKey;
@@ -561,8 +564,9 @@ function renderDiario(){
 
   if(!window.diarioBody) return;
   diarioBody.innerHTML = rows.map((r,i)=>{
+    const valorBrutoDia = Number(r.bruto || 0);
     const valorLiquidoDia = r.bruto - r.setor;
-    const diff=valorLiquidoDia-metaDia;
+    const diff=valorBrutoDia-metaDia;
     return `<tr style="background:${intensityColor(diff, metaDia)}">
       <td>${String(i+1).padStart(2,'0')}/${monthKey.slice(5,7)}/${monthKey.slice(0,4)}</td>
       <td>${fmtMoney(r.bruto)}</td>
@@ -662,6 +666,7 @@ function renderAnual(){
   const labels=agg.map(r=>r.monthKey.slice(5,7));
   const bruto=agg.map(r=>r.bruto);
   const liquido=agg.map(r=>r.liquido);
+  const meta=agg.map(r=>r.meta);
   const inter=agg.map(r=>r.inter);
   const nac=agg.map(r=>r.nac);
   const pct=agg.map(r=>r.refPct);
@@ -671,7 +676,8 @@ function renderAnual(){
     type:'line',
     data:{labels,datasets:[
       {label:'Bruto',data:bruto,borderColor:'#35b9ff',backgroundColor:'transparent',borderWidth:3,tension:.3},
-      {label:'Lucro real',data:liquido,borderColor:'#1fc16b',backgroundColor:'transparent',borderWidth:3,tension:.3}
+      {label:'Lucro real',data:liquido,borderColor:'#1fc16b',backgroundColor:'transparent',borderWidth:3,tension:.3},
+      {label:'Meta',data:meta,borderColor:'#f2c14f',backgroundColor:'transparent',borderWidth:3,borderDash:[8,5],tension:0,pointRadius:3}
     ]},
     options:chartOpts(true,false,false)
   });
@@ -1117,7 +1123,7 @@ if(!window.__getMonthDatasetOriginalV11 && typeof getMonthDataset === 'function'
   };
 }
 
-// Ajusta % refaturado + substituto para usar líquido quando houver valor real.
+// Ajusta % refaturado + substituto para usar BRUTO REAL quando houver valor real.
 if(!window.__renderDashboardOriginalV11 && typeof renderDashboard === 'function'){
   window.__renderDashboardOriginalV11 = renderDashboard;
 
@@ -1130,17 +1136,16 @@ if(!window.__renderDashboardOriginalV11 && typeof renderDashboard === 'function'
 
     const setor = rows.reduce((s,r)=>s + Number(r.setor || 0),0);
     const subst = rows.reduce((s,r)=>s + Number(r.substituicao || 0),0);
-    const liquido = rows.reduce((s,r)=>s + Number(r.liquido || 0),0);
+    const brutoOperacional = rows.reduce((s,r)=>s + Number(r.bruto || 0),0);
+    const baseImpacto = Number(real?.bruto || 0) > 0 ? Number(real.bruto) : brutoOperacional;
 
-    if(real.liquido && liquido){
-      setText('cardErroPct', fmtPct(((setor + subst) / liquido) * 100));
-      const help = document.querySelector('#cardErroPct + .help');
-      if(help) help.textContent = '(Refaturado + substituto) ÷ líquido real';
-    }
+    setText('cardErroPct', fmtPct(baseImpacto ? ((setor + subst) / baseImpacto) * 100 : 0));
+    const help = document.querySelector('#cardErroPct + .help');
+    if(help) help.textContent = '(Refaturado + substituto) ÷ bruto real';
   };
 }
 
-// Ajusta anual para percentual usar líquido.
+// Ajusta anual para percentual usar BRUTO REAL.
 if(!window.__aggregateYearOriginalV11 && typeof aggregateYear === 'function'){
   window.__aggregateYearOriginalV11 = aggregateYear;
 
@@ -1148,14 +1153,17 @@ if(!window.__aggregateYearOriginalV11 && typeof aggregateYear === 'function'){
     const arr = window.__aggregateYearOriginalV11(year);
     return arr.map(m=>{
       const rows = getMonthDataset(m.monthKey);
+      const real = getValoresReaisV11(m.monthKey);
       const setor = rows.reduce((s,r)=>s + Number(r.setor || 0),0);
       const subst = rows.reduce((s,r)=>s + Number(r.substituicao || 0),0);
+      const bruto = rows.reduce((s,r)=>s + Number(r.bruto || 0),0);
       const liquido = rows.reduce((s,r)=>s + Number(r.liquido || 0),0);
+      const baseImpacto = Number(real?.bruto || 0) > 0 ? Number(real.bruto) : bruto;
       return {
         ...m,
-        bruto: rows.reduce((s,r)=>s + Number(r.bruto || 0),0),
+        bruto,
         liquido,
-        refPct: liquido ? ((setor + subst) / liquido) * 100 : 0
+        refPct: baseImpacto ? ((setor + subst) / baseImpacto) * 100 : 0
       };
     });
   };

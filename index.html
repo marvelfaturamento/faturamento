@@ -38,12 +38,12 @@
             <div class="mini-card"><div class="label">Meta do mês</div><div id="cardMeta" class="value warn">70.467.820,06</div><div class="help">Configuração mensal</div></div>
 
             <div class="mini-card"><div class="label">Falta / sobra</div><div id="cardFalta" class="value bad sm">6.264.524,36</div><div class="help">Verde = acima da meta</div></div>
-            <div class="mini-card"><div class="label">% atingido</div><div id="cardAtingido" class="value warn">91,1%</div><div class="help">Valor líquido ÷ meta</div></div>
+            <div class="mini-card"><div class="label">% atingido</div><div id="cardAtingido" class="value warn">91,1%</div><div class="help">Valor bruto ÷ meta</div></div>
             <div class="mini-card"><div class="label">Internacional</div><div id="cardInter" class="value sm">23.997.707,30</div><div id="cardInterPct" class="help">36,9% da receita</div></div>
             <div class="mini-card"><div class="label">Nacional</div><div id="cardNac" class="value sm">41.058.900,69</div><div id="cardNacPct" class="help">63,1% da receita</div></div>
           </div>
           <div class="metrics-row">
-            <div class="mini-card"><div class="label">Média líquida por dia</div><div id="cardMediaDia" class="value sm">2.071.074,05</div><div class="help">Valor líquido ÷ dias do mês</div></div>
+            <div class="mini-card"><div class="label">Média bruta por dia</div><div id="cardMediaDia" class="value sm">2.071.074,05</div><div class="help">Valor bruto ÷ dias do mês</div></div>
             <div class="mini-card"><div class="label">Precisa por dia</div><div id="cardPrecisaDia" class="value good">202.081,43</div><div class="help">Para bater a meta</div></div>
             <div class="mini-card"><div class="label">Substituto</div><div id="cardSubst" class="value sm">320.871,47</div><div class="help">Conferência</div></div>
           </div>
@@ -54,13 +54,13 @@
             <div class="mini-card"><div class="label">Melhor dia</div><div id="cardBestDay" class="value sm">15/01/2026</div><div id="cardBestVal" class="help">3.731.333,79</div></div>
             <div class="mini-card"><div class="label">Pior dia</div><div id="cardWorstDay" class="value sm">11/01/2026</div><div id="cardWorstVal" class="help">103.902,29</div></div>
             <div class="mini-card"><div class="label">Meta por dia</div><div id="cardMetaDia" class="value sm">2.273.155,49</div><div id="cardDaysInMonth" class="help">31 dias no mês</div></div>
-            <div class="mini-card"><div class="label">% refaturado</div><div id="cardErroPct" class="value warn">1,8%</div><div class="help">(Refaturado + substituto) ÷ bruto</div></div>
+            <div class="mini-card"><div class="label">% refaturado</div><div id="cardErroPct" class="value warn">1,8%</div><div class="help">(Refaturado + substituto) ÷ bruto real</div></div>
           </div>
           <div style="margin-top:16px" class="cards">
             <div class="mini-card"><div class="label">Participação internacional</div><div id="cardPartInter" class="value sm">36,9%</div></div>
             <div class="mini-card"><div class="label">Participação nacional</div><div id="cardPartNac" class="value sm">63,1%</div></div>
             <div class="mini-card"><div class="label">Mês consultado</div><div id="cardMes" class="value sm">janeiro de 2026</div></div>
-            <div class="mini-card"><div class="label">Status do mês</div><div style="margin-top:10px"><span id="cardStatus" class="pill bad">Abaixo da meta</span></div><div class="help">Considera o mês filtrado</div></div>
+            <div class="mini-card"><div class="label">Status do mês</div><div style="margin-top:10px"><span id="cardStatus" class="pill bad">Abaixo da meta</span></div><div class="help">Considera o bruto do mês filtrado</div></div>
           </div></div>
       </div>
     </section>
@@ -90,7 +90,7 @@
 
     <section id="diario" class="page">
       <div class="panel">
-        <div class="toolbar"><div><h2>Faturamento diário</h2><div class="sub">Meta dia = meta do mês ÷ total de dias do mês selecionado</div></div><select id="diarioMonth"><option value="2026-01">janeiro de 2026</option><option value="2026-02">fevereiro de 2026</option><option value="2026-03">março de 2026</option><option value="2026-04">abril de 2026</option><option value="2026-05">maio de 2026</option><option value="2026-06">junho de 2026</option><option value="2026-07">julho de 2026</option><option value="2026-08">agosto de 2026</option><option value="2026-09">setembro de 2026</option><option value="2026-10">outubro de 2026</option><option value="2026-11">novembro de 2026</option><option value="2026-12">dezembro de 2026</option></select></div>
+        <div class="toolbar"><div><h2>Faturamento diário</h2><div class="sub">Meta dia = meta do mês ÷ total de dias do mês selecionado. A diferença considera o bruto do dia.</div></div><select id="diarioMonth"><option value="2026-01">janeiro de 2026</option><option value="2026-02">fevereiro de 2026</option><option value="2026-03">março de 2026</option><option value="2026-04">abril de 2026</option><option value="2026-05">maio de 2026</option><option value="2026-06">junho de 2026</option><option value="2026-07">julho de 2026</option><option value="2026-08">agosto de 2026</option><option value="2026-09">setembro de 2026</option><option value="2026-10">outubro de 2026</option><option value="2026-11">novembro de 2026</option><option value="2026-12">dezembro de 2026</option></select></div>
         <div class="fit"><table><thead><tr><th style="width:10%">Dia</th><th style="width:15%">Bruto</th><th style="width:12%">Refaturado</th><th style="width:11%">Setor</th><th style="width:12%">Substituição</th><th style="width:14%">Lucro real</th><th style="width:13%">Meta dia</th><th style="width:13%">Diferença</th></tr></thead><tbody id="diarioBody"><tr style="background:rgba(239,77,97,0.56)">
       <td>01/01/2026</td>
       <td>0,00</td>
