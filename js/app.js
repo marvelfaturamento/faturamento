@@ -182,8 +182,8 @@ function parseReportLikeGrid(grid){
     const values=row.map(v=>String(v??'').trim());
     const joined=values.join(' ').trim();
     if(!joined) continue;
-    if(/FRETE INTERNACIONAL/i.test(joined)){mode='inter';valorCol=-1;continue;}
-    if(/FRETE NACIONAL/i.test(joined)){mode='nac';valorCol=-1;continue;}
+    if(/FRETE INTERNACIONAL/i.test(joined)){mode='inter';continue;}
+    if(/FRETE NACIONAL/i.test(joined)){mode='nac';continue;}
     const dateHeader=values.findIndex(v=>/^data$/i.test(v));
     const valueHeader=values.findIndex(v=>/^valor realizado$/i.test(v));
     if(dateHeader>=0 && valueHeader>=0){
